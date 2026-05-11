@@ -16,8 +16,8 @@ type RemoteScript = {
   id: string;
   title: string;
   body: string;
-  created_at: string;
-  updated_at: string;
+  created_at: number;
+  updated_at: number;
 };
 
 function toRemote(s: Script, userId: string): RemoteScript & { user_id: string } {
@@ -26,8 +26,8 @@ function toRemote(s: Script, userId: string): RemoteScript & { user_id: string }
     user_id: userId,
     title: s.title,
     body: s.body,
-    created_at: new Date(s.createdAt).toISOString(),
-    updated_at: new Date(s.updatedAt).toISOString(),
+    created_at: s.createdAt,
+    updated_at: s.updatedAt,
   };
 }
 
@@ -36,8 +36,8 @@ function fromRemote(r: RemoteScript): Script {
     id: r.id,
     title: r.title,
     body: r.body,
-    createdAt: new Date(r.created_at).getTime(),
-    updatedAt: new Date(r.updated_at).getTime(),
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
   };
 }
 
