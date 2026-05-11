@@ -6,11 +6,9 @@ import type { User } from "@supabase/supabase-js";
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPro, setIsPro] = useState<boolean>(() => {
-    try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
-  });
 
   useEffect(() => {
+    // Fallback: resolve loading within 3s if Supabase is slow
     const timeout = setTimeout(() => setLoading(false), 3000);
 
     supabase.auth.getSession().then(({ data }) => {
@@ -22,22 +20,20 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const u = session?.user ?? null;
+        setUser(u);
 
         if (event === "SIGNED_IN" && u?.email) {
           const pendingCode = localStorage.getItem("reelprompt:pending-code");
           if (pendingCode) {
-            // New activation: code was validated in SuccessView, mark as Pro
+            // New activation: code validated in SuccessView
             localStorage.setItem("reelprompt:pro", "true");
             localStorage.setItem("reelprompt:pro-key", pendingCode);
             localStorage.removeItem("reelprompt:pending-code");
-            setIsPro(true);
           } else {
-            // Returning user: verify Pro status from DB
-            // RLS on pro_users is USING (true) so this works for everyone
+            // Returning user: check DB — works because RLS is USING (true)
             const isProUser = await checkProUser(u.email);
             if (isProUser) {
               localStorage.setItem("reelprompt:pro", "true");
-              setIsPro(true);
             }
           }
         }
@@ -45,10 +41,8 @@ export function useAuth() {
         if (event === "SIGNED_OUT") {
           localStorage.removeItem("reelprompt:pro");
           localStorage.removeItem("reelprompt:pro-key");
-          setIsPro(false);
+          localStorage.removeItem("reelprompt:welcomed");
         }
-
-        setUser(u);
       }
     );
 
@@ -68,9 +62,8 @@ export function useAuth() {
     localStorage.removeItem("reelprompt:pro");
     localStorage.removeItem("reelprompt:pro-key");
     localStorage.removeItem("reelprompt:welcomed");
-    setIsPro(false);
     await supabase.auth.signOut();
   };
 
-  return { user, isPro, loading, signIn, signOut };
+  return { user, loading, signIn, signOut };
 }
