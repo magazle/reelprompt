@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase, registerProUser, checkProUser } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
 export function useAuth() {
@@ -14,22 +14,27 @@ export function useAuth() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         const u = session?.user ?? null;
         setUser(u);
 
-        // When user completes magic link sign-in AND has a pending pro code,
-        // write the pro flag. This is the only place isPro gets set to true.
-        if (event === "SIGNED_IN" && u) {
+        if (event === "SIGNED_IN" && u?.email) {
           const pendingCode = localStorage.getItem("reelprompt:pending-code");
           if (pendingCode) {
+            // First activation: register email as Pro user
+            await registerProUser(u.email);
             localStorage.setItem("reelprompt:pro", "true");
             localStorage.setItem("reelprompt:pro-key", pendingCode);
             localStorage.removeItem("reelprompt:pending-code");
+          } else {
+            // Returning user: check if email is in pro_users
+            const isPro = await checkProUser(u.email);
+            if (isPro) {
+              localStorage.setItem("reelprompt:pro", "true");
+            }
           }
         }
 
-        // On sign out: clear pro flag
         if (event === "SIGNED_OUT") {
           localStorage.removeItem("reelprompt:pro");
           localStorage.removeItem("reelprompt:pro-key");
