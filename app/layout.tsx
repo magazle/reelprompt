@@ -7,9 +7,9 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.svg", type: "image/svg+xml" },   // tab bar — optimised for 16-32px
+      { url: "/favicon.ico", sizes: "16x16 32x32" },    // fallback for older browsers
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" }, // Android PWA
     ],
     apple: [
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
