@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Background -->
+  <!-- Full bleed background -->
   <rect width="512" height="512" fill="#16a34a"/>
 
-  <!-- Text lines, fading top to bottom -->
-  <rect x="88" y="108" width="252" height="30" rx="15" fill="#f0fdf4"/>
-  <rect x="88" y="158" width="320" height="30" rx="15" fill="rgba(240,253,244,0.78)"/>
-  <rect x="88" y="208" width="278" height="30" rx="15" fill="rgba(240,253,244,0.56)"/>
-  <rect x="88" y="258" width="304" height="30" rx="15" fill="rgba(240,253,244,0.36)"/>
-  <rect x="88" y="308" width="220" height="30" rx="15" fill="rgba(240,253,244,0.18)"/>
-  <rect x="88" y="358" width="260" height="30" rx="15" fill="rgba(240,253,244,0.08)"/>
+  <!-- Content scaled down with padding (safe zone aware) -->
+  <!-- Text lines centered, occupying ~60% of canvas width -->
+  <rect x="116" y="130" width="196" height="26" rx="13" fill="#f0fdf4"/>
+  <rect x="116" y="172" width="252" height="26" rx="13" fill="rgba(240,253,244,0.76)"/>
+  <rect x="116" y="214" width="218" height="26" rx="13" fill="rgba(240,253,244,0.54)"/>
+  <rect x="116" y="256" width="236" height="26" rx="13" fill="rgba(240,253,244,0.34)"/>
+  <rect x="116" y="298" width="172" height="26" rx="13" fill="rgba(240,253,244,0.16)"/>
 
-  <!-- Record button: outer glow ring, white ring, green dot -->
-  <circle cx="392" cy="384" r="78" fill="rgba(240,253,244,0.14)"/>
-  <circle cx="392" cy="384" r="56" fill="#f0fdf4"/>
-  <circle cx="392" cy="384" r="34" fill="#16a34a"/>
+  <!-- Record button — kept inside safe zone, bottom-right quadrant -->
+  <circle cx="368" cy="352" r="66" fill="rgba(240,253,244,0.13)"/>
+  <circle cx="368" cy="352" r="48" fill="#f0fdf4"/>
+  <circle cx="368" cy="352" r="29" fill="#16a34a"/>
 </svg>
