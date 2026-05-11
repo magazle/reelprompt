@@ -21,11 +21,11 @@ export function useAuth() {
         // When user completes magic link sign-in AND has a pending pro code,
         // write the pro flag. This is the only place isPro gets set to true.
         if (event === "SIGNED_IN" && u) {
-          const pendingCode = sessionStorage.getItem("reelprompt:pending-code");
+          const pendingCode = localStorage.getItem("reelprompt:pending-code");
           if (pendingCode) {
             localStorage.setItem("reelprompt:pro", "true");
             localStorage.setItem("reelprompt:pro-key", pendingCode);
-            sessionStorage.removeItem("reelprompt:pending-code");
+            localStorage.removeItem("reelprompt:pending-code");
           }
         }
 
@@ -33,6 +33,7 @@ export function useAuth() {
         if (event === "SIGNED_OUT") {
           localStorage.removeItem("reelprompt:pro");
           localStorage.removeItem("reelprompt:pro-key");
+          localStorage.removeItem("reelprompt:welcomed");
         }
       }
     );
@@ -43,7 +44,7 @@ export function useAuth() {
   const signIn = (email: string) =>
     supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: "https://www.reelprompt.xyz" },
+      options: { emailRedirectTo: window.location.origin },
     });
 
   const signOut = () => supabase.auth.signOut();
