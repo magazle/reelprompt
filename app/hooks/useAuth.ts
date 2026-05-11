@@ -4,18 +4,27 @@ import { supabase, registerProUser, checkProUser } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser]     = useState<User | null>(null);
+  const [isPro, setIsPro]   = useState<boolean>(() => {
+    try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Resolve loading within 3s max — guards against Supabase network delays
-    // that would keep authLoading=true and hide the ProButton indefinitely.
+    // Fallback: resolve loading within 3s if Supabase is slow
     const timeout = setTimeout(() => setLoading(false), 3000);
 
     supabase.auth.getSession().then(({ data }) => {
       clearTimeout(timeout);
-      setUser(data.session?.user ?? null);
+      const u = data.session?.user ?? null;
+      setUser(u);
       setLoading(false);
+      // If there's already a session on mount (e.g. returning user),
+      // re-read the pro flag from localStorage in case it was set earlier.
+      if (u) {
+        const stored = localStorage.getItem("reelprompt:pro") === "true";
+        setIsPro(stored);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -25,29 +34,29 @@ export function useAuth() {
         if (event === "SIGNED_IN" && u?.email) {
           const pendingCode = localStorage.getItem("reelprompt:pending-code");
           if (pendingCode) {
+            // New activation: register email, mark as Pro
             await registerProUser(u.email);
             localStorage.setItem("reelprompt:pro", "true");
             localStorage.setItem("reelprompt:pro-key", pendingCode);
             localStorage.removeItem("reelprompt:pending-code");
+            setIsPro(true);
           } else {
-            const isPro = await checkProUser(u.email);
-            if (isPro) {
+            // Returning user: check DB (works because user is now authenticated)
+            const proStatus = await checkProUser(u.email);
+            if (proStatus) {
               localStorage.setItem("reelprompt:pro", "true");
+              setIsPro(true);
             }
           }
-          // Notify page.tsx AFTER localStorage is written
-          window.dispatchEvent(new Event("reelprompt:pro-updated"));
         }
 
         if (event === "SIGNED_OUT") {
           localStorage.removeItem("reelprompt:pro");
           localStorage.removeItem("reelprompt:pro-key");
           localStorage.removeItem("reelprompt:welcomed");
-          // Notify page.tsx to reset isPro state
-          window.dispatchEvent(new Event("reelprompt:signed-out"));
+          setIsPro(false);
         }
 
-        // setUser last — so any consumer reads localStorage in the correct state
         setUser(u);
       }
     );
@@ -64,15 +73,13 @@ export function useAuth() {
       options: { emailRedirectTo: window.location.origin },
     });
 
-  // signOut clears localStorage immediately (synchronously) before the async
-  // Supabase call, so page.tsx can react without waiting for the auth event.
   const signOut = async () => {
     localStorage.removeItem("reelprompt:pro");
     localStorage.removeItem("reelprompt:pro-key");
     localStorage.removeItem("reelprompt:welcomed");
-    window.dispatchEvent(new Event("reelprompt:signed-out"));
+    setIsPro(false);
     await supabase.auth.signOut();
   };
 
-  return { user, loading, signIn, signOut };
+  return { user, isPro, loading, signIn, signOut };
 }
