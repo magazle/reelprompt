@@ -1,14 +1,20 @@
 "use client";
 import { useState } from "react";
-import { checkProUser } from "../lib/supabase";
-import { useAuth } from "../hooks/useAuth";
+import { validateProCode } from "../lib/supabase";
 
 const KO_FI_URL = "https://ko-fi.com/s/e02564e7cc";
 
 interface Props {
   isPro: boolean;
   onBack: () => void;
+  onActivate: () => void;
 }
+
+const ERROR_MESSAGES = {
+  invalid: "Code not found — double-check your email.",
+  already_used: "This code has already been used.",
+  error: "Something went wrong — try again in a moment.",
+};
 
 const CHECK = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -32,36 +38,24 @@ const FEATURES_PRO = [
   "All future Pro features",
 ];
 
-export default function PricingView({ isPro, onBack }: Props) {
-  const { signIn } = useAuth();
-  const [showSignIn, setShowSignIn] = useState(false);
-  const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+export default function PricingView({ isPro, onBack, onActivate }: Props) {
+  const [key, setKey] = useState("");
+  const [keyError, setKeyError] = useState("");
+  const [activating, setActivating] = useState(false);
 
-  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
-
-  const handleSignIn = async () => {
-    const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !trimmed.includes("@")) { setEmailError("Enter a valid email address."); return; }
-    if (isOffline) { setEmailError("You're offline — connect to the internet to sign in."); return; }
-    setSending(true);
-    setEmailError("");
-
-    // Verify the email is registered as Pro before sending the link.
-    // Works now because RLS on pro_users is set to USING (true) — readable by anyone.
-    const isProUser = await checkProUser(trimmed);
-    if (!isProUser) {
-      setEmailError("This email isn't registered as Pro. Did you complete activation at reelprompt.xyz/?pro=success after purchase?");
-      setSending(false);
-      return;
+  const handleActivate = async () => {
+    const trimmed = key.trim();
+    if (!trimmed) { setKeyError("Enter your activation code."); return; }
+    if (trimmed.length < 6) { setKeyError("Code looks too short — check your email."); return; }
+    setActivating(true);
+    setKeyError("");
+    const result = await validateProCode(trimmed);
+    if (result === "ok") {
+      onActivate();
+    } else {
+      setKeyError(ERROR_MESSAGES[result]);
     }
-
-    const { error } = await signIn(trimmed);
-    if (error) { setEmailError("Something went wrong — try again."); setSending(false); return; }
-    setSent(true);
-    setSending(false);
+    setActivating(false);
   };
 
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
@@ -139,26 +133,13 @@ export default function PricingView({ isPro, onBack }: Props) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
                 Support ReelPrompt ✦
               </a>
-              <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--bg-2)", borderRadius: 10, border: "1px solid var(--border)" }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 6, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.05em" }}>How it works</div>
-                {[
-                  "1. Pay on Ko-fi — you'll receive an activation code by email",
-                  "2. Ko-fi redirects you back here automatically",
-                  "3. Enter your code, then your email to get a magic sign-in link",
-                  "4. Tap the link — Pro is activated instantly",
-                ].map((step) => (
-                  <div key={step} style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", lineHeight: 1.6 }}>{step}</div>
-                ))}
-              </div>
             </div>
 
-            {/* Ko-fi donate — Pro users only */}
+            {/* Ko-fi donate — only for Pro users */}
             {isPro && (
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>☕ Buy me a coffee</div>
-                <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                  You already have Pro. If you love ReelPrompt, a coffee keeps it going — no pressure, no minimum.
-                </p>
+                <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>You already have Pro. If you love ReelPrompt, a coffee keeps it going — no pressure, no minimum.</p>
                 <a href="https://ko-fi.com/s/111eb93270" target="_blank" rel="noopener noreferrer"
                   style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "12px 0", borderRadius: 12, background: "var(--bg-2)", color: "var(--text-2)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, textDecoration: "none", border: "1px solid var(--border-2)", transition: "background 0.15s" }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-3)")}
@@ -169,66 +150,31 @@ export default function PricingView({ isPro, onBack }: Props) {
             )}
           </div>
 
-          {/* Already a Pro member */}
+          {/* Activation — only for non-Pro */}
           {!isPro && (
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Already a Pro member?</div>
-
-              {!showSignIn && !sent && (
-                <button onClick={() => setShowSignIn(true)}
-                  style={{ width: "100%", padding: "10px 0", borderRadius: 10, background: "var(--bg-2)", border: "1px solid var(--border)", color: "var(--text-2)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "background 0.15s" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-3)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-2)")}>
-                  Sign in →
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Already supported?</div>
+              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Enter the activation code from your email to unlock Pro.</p>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input type="text" placeholder="REELPRO-XXXXX" value={key}
+                  onChange={(e) => { setKey(e.target.value.toUpperCase()); setKeyError(""); }}
+                  onKeyDown={(e) => e.key === "Enter" && handleActivate()}
+                  style={{ flex: 1, background: "var(--bg-2)", border: `1px solid ${keyError ? "#ff3b30" : "var(--border)"}`, borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: 13, padding: "10px 12px", outline: "none", transition: "border-color 0.15s", textTransform: "uppercase" }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = keyError ? "#ff3b30" : "var(--accent)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = keyError ? "#ff3b30" : "var(--border)")}
+                />
+                <button onClick={handleActivate} disabled={activating} className="btn btn-primary"
+                  style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: activating ? 0.7 : 1 }}>
+                  {activating ? "..." : "Activate"}
                 </button>
-              )}
-
-              {showSignIn && !sent && (
-                <>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                    Enter the email you used to activate Pro — we'll send a magic link.
-                  </p>
-                  {isOffline && (
-                    <p style={{ fontSize: 11, color: "#ff3b30", marginBottom: 10, fontFamily: "var(--font-mono)" }}>📡 You're offline — connect to sign in.</p>
-                  )}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input type="email" placeholder="your@email.com" value={email} autoFocus
-                      onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
-                      onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
-                      style={{ flex: 1, background: "var(--bg-2)", border: `1px solid ${emailError ? "#ff3b30" : "var(--border)"}`, borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: 13, padding: "10px 12px", outline: "none", transition: "border-color 0.15s" }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = emailError ? "#ff3b30" : "var(--accent)")}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = emailError ? "#ff3b30" : "var(--border)")}
-                    />
-                    <button onClick={handleSignIn} disabled={sending || isOffline} className="btn btn-primary"
-                      style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: sending || isOffline ? 0.7 : 1 }}>
-                      {sending ? "Checking…" : "Send →"}
-                    </button>
-                  </div>
-                  {emailError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>{emailError}</p>}
-                </>
-              )}
-
-              {sent && (
-                <div style={{ textAlign: "center", padding: "12px 0" }}>
-                  <div style={{ fontSize: 32, marginBottom: 10 }}>📬</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Check your email</div>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6, fontFamily: "var(--font-mono)", marginBottom: 16 }}>
-                    We sent a magic link to <strong style={{ color: "var(--text-2)" }}>{email}</strong>.<br />
-                    Tap it to sign in — you can close this page while you wait.
-                  </p>
-                  <button onClick={() => { setSent(false); setShowSignIn(true); setEmail(""); setEmailError(""); }}
-                    style={{ fontSize: 12, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)" }}>
-                    Use a different email
-                  </button>
-                </div>
-              )}
+              </div>
+              {keyError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{keyError}</p>}
             </div>
           )}
 
           <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 24, lineHeight: 1.6, fontFamily: "var(--font-mono)" }}>
-            Need help? <a href="/help" style={{ color: "var(--accent)", textDecoration: "none" }}>Visit the Help Desk</a>
+            After supporting, check your email for the activation code.{"\n"}Usually within 24 hours. Questions? noreply@leomagazzu.it
           </p>
-
         </div>
       </div>
     </div>
