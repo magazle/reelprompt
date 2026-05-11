@@ -16,27 +16,26 @@ function pickMimeType(): string {
 }
 
 export function useCamera() {
-  const streamRef = useRef<MediaStream | null>(null);
+  const streamRef        = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const mimeTypeRef = useRef<string>("");
+  const chunksRef        = useRef<Blob[]>([]);
+  const mimeTypeRef      = useRef<string>("");
+  const timerRef         = useRef<NodeJS.Timeout | null>(null);
 
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [hasPermission, setHasPermission]   = useState<boolean | null>(null);
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [lastBlob, setLastBlob] = useState<Blob | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [recordingTime, setRecordingTime]   = useState(0);
+  const [lastBlob, setLastBlob]             = useState<Blob | null>(null);
 
   const startCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user",
-          width: { ideal: 1080 },
-          height: { ideal: 1920 },
+          width:       { ideal: 1080 },
+          height:      { ideal: 1920 },
           aspectRatio: { ideal: 9 / 16 },
-          frameRate: { ideal: 60, min: 30 },
+          frameRate:   { ideal: 60, min: 30 },
         },
         audio: {
           echoCancellation: true,
@@ -45,9 +44,6 @@ export function useCamera() {
         },
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
       setHasPermission(true);
       return stream;
     } catch (err) {
@@ -58,20 +54,8 @@ export function useCamera() {
   }, []);
 
   const stopCamera = useCallback(() => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
-  }, []);
-
-  const attachVideo = useCallback((el: HTMLVideoElement | null) => {
-    videoRef.current = el;
-    if (el && streamRef.current) {
-      el.srcObject = streamRef.current;
-    }
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
   }, []);
 
   const startRecording = useCallback(() => {
@@ -91,7 +75,6 @@ export function useCamera() {
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
-
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
       setLastBlob(blob);
@@ -101,10 +84,7 @@ export function useCamera() {
     recorder.start(100);
     setRecordingState("recording");
     setRecordingTime(0);
-
-    timerRef.current = setInterval(() => {
-      setRecordingTime((t) => t + 1);
-    }, 1000);
+    timerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
   }, []);
 
   const pauseRecording = useCallback(() => {
@@ -119,36 +99,27 @@ export function useCamera() {
     if (mediaRecorderRef.current?.state === "paused") {
       mediaRecorderRef.current.resume();
       setRecordingState("recording");
-      timerRef.current = setInterval(() => {
-        setRecordingTime((t) => t + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setRecordingTime((t) => t + 1), 1000);
     }
   }, []);
 
   const stopRecording = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state !== "inactive"
-    ) {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
   }, []);
 
-  const downloadRecording = useCallback(
-    (filename = "reelprompt-recording") => {
-      if (!lastBlob) return;
-      const isMp4 = mimeTypeRef.current.includes("mp4");
-      const ext = isMp4 ? "mp4" : "webm";
-      const url = URL.createObjectURL(lastBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${filename}.${ext}`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    },
-    [lastBlob]
-  );
+  const downloadRecording = useCallback((filename = "reelprompt-recording") => {
+    if (!lastBlob) return;
+    const ext = mimeTypeRef.current.includes("mp4") ? "mp4" : "webm";
+    const url = URL.createObjectURL(lastBlob);
+    const a   = document.createElement("a");
+    a.href     = url;
+    a.download = `${filename}.${ext}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  }, [lastBlob]);
 
   const resetRecording = useCallback(() => {
     chunksRef.current = [];
@@ -157,11 +128,10 @@ export function useCamera() {
     setRecordingTime(0);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      stopCamera();
-    };
+  // Cleanup on unmount
+  useEffect(() => () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    stopCamera();
   }, [stopCamera]);
 
   return {
@@ -169,9 +139,7 @@ export function useCamera() {
     recordingState,
     recordingTime,
     lastBlob,
-    mimeType: mimeTypeRef.current,
     streamRef,
-    attachVideo,
     startCamera,
     stopCamera,
     startRecording,
