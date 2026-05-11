@@ -142,24 +142,20 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
               background: "var(--surface)", border: "2px solid var(--accent)",
               borderRadius: 16, padding: "20px 20px",
               boxShadow: "0 0 32px var(--accent-glow)",
-              position: "relative", overflow: "hidden",
             }}>
-              {/* Badge */}
-              <div style={{
-                position: "absolute", top: 16, right: 16,
-                background: "var(--accent)", color: "white",
-                fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
-                padding: "3px 8px", borderRadius: 6, letterSpacing: "0.05em",
-              }}>
-                LIFETIME
-              </div>
-
-              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 4 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>✦ Pro</div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>one payment, no expiry</div>
                 </div>
-                <div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
+                  <div style={{
+                    background: "var(--accent)", color: "white",
+                    fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
+                    padding: "3px 8px", borderRadius: 6, letterSpacing: "0.05em",
+                  }}>
+                    LIFETIME
+                  </div>
                   <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--accent)" }}>€3+</div>
                 </div>
               </div>
