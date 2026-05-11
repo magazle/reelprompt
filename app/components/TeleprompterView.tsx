@@ -88,8 +88,8 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
       // Stream arrived after the video element was already mounted — attach now.
       if (stream && videoElRef.current) {
         videoElRef.current.srcObject = stream;
-        videoElRef.current.onloadedmetadata = () =>
-          camera.initPortraitEncoder(videoElRef.current!);
+        // initPortraitEncoder handles its own play/dimension readiness internally
+        camera.initPortraitEncoder(videoElRef.current);
       }
     });
     wake.acquire();
@@ -105,8 +105,8 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
     videoElRef.current = el;
     if (el && camera.streamRef.current) {
       el.srcObject = camera.streamRef.current;
-      // Wait for video to have dimensions then start the portrait canvas encoder
-      el.onloadedmetadata = () => camera.initPortraitEncoder(el);
+      // initPortraitEncoder handles its own play/dimension readiness internally
+      camera.initPortraitEncoder(el);
     }
   }, [camera.streamRef, camera.initPortraitEncoder]);
 
