@@ -360,7 +360,7 @@ export default function Home() {
         style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
         ?
       </button>
-      {!authLoading && <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
+      <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
     </div>
   );
 
@@ -413,7 +413,7 @@ export default function Home() {
                 style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
                 ?
               </button>
-              {!authLoading && <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
+              <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
               <button className="btn btn-primary" style={{ borderRadius: 14 }} onClick={handleCreate}><IconPlus /> New</button>
             </div>
           </div>
