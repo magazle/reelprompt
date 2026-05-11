@@ -1,4 +1,7 @@
 "use client";
+import { useState } from "react";
+import { validateProCode, checkProUser } from "../lib/supabase";
+import { useAuth } from "../hooks/useAuth";
 
 const KO_FI_URL = "https://ko-fi.com/s/e02564e7cc";
 
@@ -29,7 +32,70 @@ const FEATURES_PRO = [
   "All future Pro features",
 ];
 
+type SignInStep = "email" | "code" | "sent";
+
 export default function PricingView({ isPro, onBack }: Props) {
+  const { signIn } = useAuth();
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [signInStep, setSignInStep] = useState<SignInStep>("email");
+
+  const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [activatingCode, setActivatingCode] = useState(false);
+
+  const [sendingLink, setSendingLink] = useState(false);
+
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
+  const handleCheckEmail = async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes("@")) { setEmailError("Enter a valid email address."); return; }
+    if (isOffline) { setEmailError("You're offline — connect to the internet to sign in."); return; }
+    setCheckingEmail(true);
+    setEmailError("");
+    const isPro = await checkProUser(trimmed);
+    if (isPro) {
+      // Email is registered — send magic link directly
+      const { error } = await signIn(trimmed);
+      if (error) { setEmailError("Something went wrong — try again."); setCheckingEmail(false); return; }
+      setSignInStep("sent");
+    } else {
+      // Email not found — ask for activation code
+      setSignInStep("code");
+    }
+    setCheckingEmail(false);
+  };
+
+  const handleActivateCode = async () => {
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) { setCodeError("Enter your activation code."); return; }
+    if (trimmed.length < 6) { setCodeError("Code looks too short — check your email."); return; }
+    setActivatingCode(true);
+    setCodeError("");
+    const result = await validateProCode(trimmed);
+    if (result === "ok") {
+      localStorage.setItem("reelprompt:pending-code", trimmed);
+      // Now send magic link
+      setSendingLink(true);
+      const { error } = await signIn(email);
+      if (error) { setCodeError("Code accepted but couldn't send magic link — try again."); setSendingLink(false); setActivatingCode(false); return; }
+      setSignInStep("sent");
+      setSendingLink(false);
+    } else {
+      const msgs = {
+        invalid: "Code not found — double-check your email.",
+        already_used: "This code has already been used.",
+        error: "Something went wrong — try again.",
+      };
+      setCodeError(msgs[result]);
+    }
+    setActivatingCode(false);
+  };
+
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
@@ -93,9 +159,7 @@ export default function PricingView({ isPro, onBack }: Props) {
                   <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--accent)" }}>€3+</div>
                 </div>
               </div>
-              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                Pay what you feel is fair — €3 minimum.
-              </p>
+              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Pay what you feel is fair — €3 minimum.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 20 }}>
                 {FEATURES_PRO.map((f) => (
                   <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "var(--text-2)" }}>{CHECK} {f}</div>
@@ -108,8 +172,7 @@ export default function PricingView({ isPro, onBack }: Props) {
                 Support ReelPrompt ✦
               </a>
               <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 12, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                After purchase you'll receive an activation code by email.<br />
-                <a href="/help#pro" style={{ color: "var(--accent)", textDecoration: "none" }}>How does activation work?</a>
+                After purchase you'll receive an activation code by email.
               </p>
             </div>
 
@@ -128,18 +191,89 @@ export default function PricingView({ isPro, onBack }: Props) {
                 </a>
               </div>
             )}
-
           </div>
 
-          {/* Already have a code? */}
+          {/* Already a Pro member — sign in section */}
           {!isPro && (
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
-                Already have an activation code?{" "}
-                <a href="/?pro=success" style={{ color: "var(--accent)", textDecoration: "none" }}>Activate here →</a>
-              </p>
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Already a Pro member?</div>
+
+              {/* Collapsed state */}
+              {!showSignIn && (
+                <button onClick={() => setShowSignIn(true)}
+                  style={{ width: "100%", padding: "10px 0", borderRadius: 10, background: "var(--bg-2)", border: "1px solid var(--border)", color: "var(--text-2)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "background 0.15s" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-3)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-2)")}>
+                  Sign in →
+                </button>
+              )}
+
+              {/* Step: email */}
+              {showSignIn && signInStep === "email" && (
+                <>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
+                    Enter your email — if it's registered we'll send a magic link instantly.
+                  </p>
+                  {isOffline && (
+                    <p style={{ fontSize: 11, color: "#ff3b30", marginBottom: 10, fontFamily: "var(--font-mono)" }}>📡 You're offline — connect to sign in.</p>
+                  )}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input type="email" placeholder="your@email.com" value={email} autoFocus
+                      onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleCheckEmail()}
+                      style={{ flex: 1, background: "var(--bg-2)", border: `1px solid ${emailError ? "#ff3b30" : "var(--border)"}`, borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: 13, padding: "10px 12px", outline: "none", transition: "border-color 0.15s" }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = emailError ? "#ff3b30" : "var(--accent)")}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = emailError ? "#ff3b30" : "var(--border)")}
+                    />
+                    <button onClick={handleCheckEmail} disabled={checkingEmail || isOffline} className="btn btn-primary"
+                      style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: checkingEmail || isOffline ? 0.7 : 1 }}>
+                      {checkingEmail ? "..." : "Next →"}
+                    </button>
+                  </div>
+                  {emailError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{emailError}</p>}
+                </>
+              )}
+
+              {/* Step: code (email not found) */}
+              {showSignIn && signInStep === "code" && (
+                <>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
+                    <strong>{email}</strong> is not registered yet. Enter your activation code to complete setup.
+                  </p>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                    <input type="text" placeholder="REELPRO-XXXXX" value={code} autoFocus
+                      onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeError(""); }}
+                      onKeyDown={(e) => e.key === "Enter" && handleActivateCode()}
+                      style={{ flex: 1, background: "var(--bg-2)", border: `1px solid ${codeError ? "#ff3b30" : "var(--border)"}`, borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: 13, padding: "10px 12px", outline: "none", textTransform: "uppercase", transition: "border-color 0.15s" }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = codeError ? "#ff3b30" : "var(--accent)")}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = codeError ? "#ff3b30" : "var(--border)")}
+                    />
+                    <button onClick={handleActivateCode} disabled={activatingCode || sendingLink} className="btn btn-primary"
+                      style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: activatingCode || sendingLink ? 0.7 : 1 }}>
+                      {activatingCode || sendingLink ? "..." : "Activate"}
+                    </button>
+                  </div>
+                  {codeError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{codeError}</p>}
+                  <button onClick={() => setSignInStep("email")} style={{ fontSize: 11, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)", padding: 0 }}>← Use a different email</button>
+                </>
+              )}
+
+              {/* Step: sent */}
+              {showSignIn && signInStep === "sent" && (
+                <div style={{ textAlign: "center", padding: "8px 0" }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>📬</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Check your email</div>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
+                    We sent a magic link to <strong>{email}</strong>.<br />Tap it to sign in on any device.
+                  </p>
+                </div>
+              )}
             </div>
           )}
+
+          <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 24, lineHeight: 1.6, fontFamily: "var(--font-mono)" }}>
+            Need help? <a href="/help" style={{ color: "var(--accent)", textDecoration: "none" }}>Visit the Help Desk</a>
+          </p>
 
         </div>
       </div>
