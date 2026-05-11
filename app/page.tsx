@@ -250,7 +250,7 @@ function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLog
 
 export default function Home() {
   const { scripts, create, save, remove, duplicate } = useScripts();
-  const { user, isPro, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [view, setView]                 = useState<View>("list");
   const [activeScript, setActiveScript] = useState<Script | null>(null);
   const [settings, setSettings]         = useState<TeleprompterSettings>(getSettings);
@@ -259,7 +259,21 @@ export default function Home() {
   const [showHowTo, setShowHowTo]       = useState(false);
   const [showWelcome, setShowWelcome]   = useState(false);
 
+  // isPro is true if:
+  // 1. localStorage has reelprompt:pro = "true" (set after magic link confirmed), OR
+  // 2. user is logged in (Supabase session active)
+  // This ensures offline Pro users still get Pro experience
+  const [isPro, setIsPro] = useState<boolean>(() => {
+    try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
+  });
 
+  // Sync isPro with auth state
+  useEffect(() => {
+    if (user) {
+      const storedPro = localStorage.getItem("reelprompt:pro") === "true";
+      if (storedPro) setIsPro(true);
+    }
+  }, [user]);
 
   // Show WelcomeModal once after first Pro sign-in
   useEffect(() => {
@@ -294,7 +308,9 @@ export default function Home() {
   // Nothing to do here except navigate back
   const handleSuccessBack = () => setView("list");
 
+  // Sign out: useAuth handles localStorage cleanup via SIGNED_OUT event
   const handleSignOut = () => {
+    setIsPro(false);
     setView("list");
   };
 
@@ -344,7 +360,7 @@ export default function Home() {
         style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
         ?
       </button>
-      <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
+      {!authLoading && <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
     </div>
   );
 
@@ -397,7 +413,7 @@ export default function Home() {
                 style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
                 ?
               </button>
-              <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
+              {!authLoading && <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
               <button className="btn btn-primary" style={{ borderRadius: 14 }} onClick={handleCreate}><IconPlus /> New</button>
             </div>
           </div>
