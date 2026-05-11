@@ -24,6 +24,10 @@ export default function AccountView({ onBack, onSignOut }: Props) {
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
   const handleSignOut = async () => {
+    // signOut in useAuth already clears localStorage and dispatches
+    // "reelprompt:signed-out" synchronously before the Supabase call,
+    // so page.tsx will reset isPro immediately. We call onSignOut()
+    // here just to navigate back to the list.
     await signOut();
     onSignOut();
   };
@@ -34,7 +38,7 @@ export default function AccountView({ onBack, onSignOut }: Props) {
     if (isOffline) { setSyncError("You're offline — connect to the internet to sign in."); return; }
     setSyncState("sending");
     setSyncError("");
-    // Verify this email actually has Pro before sending the magic link.
+    // Verify this email has Pro before sending the magic link
     const isPro = await checkProUser(trimmed);
     if (!isPro) {
       setSyncError("This email isn't registered as Pro. Check your activation email or contact support.");
@@ -60,6 +64,7 @@ export default function AccountView({ onBack, onSignOut }: Props) {
       setMessage("");
     } catch { setFormState("error"); }
   };
+
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
@@ -97,6 +102,7 @@ export default function AccountView({ onBack, onSignOut }: Props) {
               </div>
             )}
           </div>
+
           {!user && (
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px", marginBottom: 14 }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>☁ Sign in to sync</div>
