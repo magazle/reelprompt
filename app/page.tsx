@@ -10,184 +10,123 @@ import { IconPlus } from "./components/Icons";
 
 type View = "list" | "editor" | "teleprompter";
 
-// ── Guide steps ───────────────────────────────────────────────────────────
-
 const GUIDE_STEPS = [
   {
     emoji: "✍️",
-    title: "Write your script",
-    body: "Type freely or paste Markdown. Use the toolbar to add bold, colours, bullets and headings — your text will look exactly the same on the teleprompter.",
+    title: "Write",
+    body: "Type or paste Markdown. Use the toolbar for bold, colours and headings.",
   },
   {
     emoji: "⚡",
-    title: "Calibrate your speed",
-    body: "Tap Calibrate in the editor, read your script aloud at your natural pace, and ReelPrompt sets the scroll speed automatically.",
+    title: "Calibrate",
+    body: "Tap Calibrate, read aloud, and ReelPrompt sets scroll speed to your pace.",
   },
   {
     emoji: "🎬",
     title: "Record",
-    body: "Press the red button for a 3-2-1 countdown, then read. The script scrolls over your camera preview — the recorded video contains only you, no text overlay.",
+    body: "3-2-1 countdown, then read. The overlay never appears in the video.",
   },
   {
     emoji: "💾",
-    title: "Save and share",
-    body: "Download the clean video when done and upload it directly to Instagram, TikTok, or wherever you publish.",
+    title: "Save",
+    body: "Download the clean video and upload to Instagram, TikTok or YouTube.",
   },
   {
     emoji: "📲",
-    title: "Install as an app",
-    body: "Add ReelPrompt to your home screen for instant access.\n\niOS: tap the Share button in Safari → \"Add to Home Screen\".\n\nAndroid: tap the menu (⋮) in Chrome → \"Add to Home Screen\" or \"Install app\".",
+    title: "Install",
+    body: "iOS: Share → Add to Home Screen.\nAndroid: Chrome menu → Install app.",
   },
 ];
 
-// ── Carousel guide ────────────────────────────────────────────────────────
-
+// Show 3 cards at a time, arrow advances by 1
 function HowToGuide() {
-  const [current, setCurrent] = useState(0);
-  const total = GUIDE_STEPS.length;
-  const step  = GUIDE_STEPS[current];
-
-  const prev = () => setCurrent((i) => Math.max(0, i - 1));
-  const next = () => setCurrent((i) => Math.min(total - 1, i + 1));
+  const [offset, setOffset] = useState(0);
+  const visible = 3;
+  const max     = GUIDE_STEPS.length - visible; // 2
 
   return (
-    <div style={{
-      background: "var(--surface)", border: "1px solid var(--border)",
-      borderRadius: 16, overflow: "hidden",
-    }}>
-      {/* Card body */}
-      <div style={{ padding: "20px 20px 16px", minHeight: 160 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{
-            width: 38, height: 38, borderRadius: 10,
-            background: "var(--bg)", border: "1px solid var(--border)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 20,
+    <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
+      {/* Cards */}
+      <div style={{ flex: 1, display: "flex", gap: 8, overflow: "hidden" }}>
+        {GUIDE_STEPS.slice(offset, offset + visible).map((step, i) => (
+          <div key={offset + i} style={{
+            flex: 1, minWidth: 0,
+            background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 12, padding: "12px 12px 14px",
+            display: "flex", flexDirection: "column", gap: 6,
           }}>
-            {step.emoji}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 18 }}>{step.emoji}</span>
+              <span style={{
+                fontSize: 9, fontFamily: "var(--font-mono)", color: "var(--text-3)",
+                letterSpacing: "0.08em",
+              }}>0{offset + i + 1}</span>
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>
+              {step.title}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.5, whiteSpace: "pre-line" }}>
+              {step.body}
+            </div>
           </div>
-          <span style={{
-            fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)",
-            letterSpacing: "0.1em",
-          }}>
-            {String(current + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
-          </span>
-        </div>
-
-        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8, lineHeight: 1.3 }}>
-          {step.title}
-        </div>
-        <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.65, whiteSpace: "pre-line" }}>
-          {step.body}
-        </div>
+        ))}
       </div>
 
-      {/* Controls */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "12px 16px", borderTop: "1px solid var(--border)",
-        background: "var(--bg-2)",
-      }}>
-        {/* Dot indicators */}
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          {GUIDE_STEPS.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              style={{
-                width: i === current ? 18 : 6,
-                height: 6, borderRadius: 3, border: "none",
-                background: i === current ? "var(--accent)" : "var(--border-2)",
-                cursor: "pointer", padding: 0,
-                transition: "width 0.2s, background 0.2s",
-              }}
-            />
-          ))}
-        </div>
-
-        {/* Arrow buttons */}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={prev}
-            disabled={current === 0}
-            style={{
-              width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)",
-              background: "var(--surface)", color: current === 0 ? "var(--text-3)" : "var(--text)",
-              cursor: current === 0 ? "default" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 14, transition: "opacity 0.15s",
-              opacity: current === 0 ? 0.35 : 1,
-            }}
-          >‹</button>
-          <button
-            onClick={next}
-            disabled={current === total - 1}
-            style={{
-              width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)",
-              background: current === total - 1 ? "var(--surface)" : "var(--accent)",
-              color: "white",
-              cursor: current === total - 1 ? "default" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 14, transition: "background 0.15s",
-              opacity: current === total - 1 ? 0.35 : 1,
-            }}
-          >›</button>
-        </div>
-      </div>
+      {/* Arrow */}
+      <button
+        onClick={() => setOffset((o) => o >= max ? 0 : o + 1)}
+        style={{
+          flexShrink: 0, width: 32, alignSelf: "stretch",
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: 12, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          color: "var(--text-2)", fontSize: 16, transition: "background 0.15s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
+        title={offset >= max ? "Back to start" : "Next"}
+      >
+        {offset >= max ? "↺" : "›"}
+      </button>
     </div>
   );
 }
 
-// ── Search bar ────────────────────────────────────────────────────────────
-
 function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ position: "relative", marginBottom: 16 }}>
-      <svg
-        width="14" height="14" viewBox="0 0 24 24" fill="none"
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-        style={{
-          position: "absolute", left: 14, top: "50%",
-          transform: "translateY(-50%)", color: "var(--text-3)", pointerEvents: "none",
-        }}
-      >
+        style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-3)", pointerEvents: "none" }}>
         <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
       <input
-        type="search"
-        placeholder="Search scripts…"
-        value={value}
+        type="search" placeholder="Search scripts…" value={value}
         onChange={(e) => onChange(e.target.value)}
         style={{
           width: "100%", background: "var(--surface)", border: "1px solid var(--border)",
           borderRadius: 12, color: "var(--text)", fontFamily: "var(--font-display)",
-          fontSize: 14, padding: "10px 14px 10px 38px", outline: "none",
-          transition: "border-color 0.15s",
+          fontSize: 14, padding: "10px 14px 10px 38px", outline: "none", transition: "border-color 0.15s",
         }}
         onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
         onBlur={(e)  => (e.currentTarget.style.borderColor = "var(--border)")}
       />
       {value && (
-        <button
-          onClick={() => onChange("")}
-          style={{
-            position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-            background: "none", border: "none", cursor: "pointer",
-            color: "var(--text-3)", fontSize: 16, lineHeight: 1, padding: 2,
-          }}
-        >×</button>
+        <button onClick={() => onChange("")} style={{
+          position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+          background: "none", border: "none", cursor: "pointer",
+          color: "var(--text-3)", fontSize: 16, lineHeight: 1, padding: 2,
+        }}>×</button>
       )}
     </div>
   );
 }
 
-// ── Footer ────────────────────────────────────────────────────────────────
-
 function Footer() {
   return (
     <div style={{
-      padding: "20px 24px",
-      paddingBottom: "max(20px, env(safe-area-inset-bottom, 0px) + 16px)",
+      padding: "16px 24px",
+      paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)",
       borderTop: "1px solid var(--border)",
       display: "flex", alignItems: "center", justifyContent: "space-between",
       gap: 12, flexShrink: 0,
@@ -195,15 +134,8 @@ function Footer() {
       <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
         © 2026 Leo Magazzu
       </span>
-      <a
-        href="https://github.com/magazle/reelprompt"
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)",
-          textDecoration: "none", transition: "color 0.15s",
-        }}
+      <a href="https://github.com/magazle/reelprompt" target="_blank" rel="noopener noreferrer"
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textDecoration: "none", transition: "color 0.15s" }}
         onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
         onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}
       >
@@ -215,8 +147,6 @@ function Footer() {
     </div>
   );
 }
-
-// ── Main ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { scripts, create, save, remove, duplicate } = useScripts();
@@ -236,75 +166,64 @@ export default function Home() {
   if (!settings) return null;
 
   if (view === "teleprompter" && activeScript) {
-    return (
-      <TeleprompterView
-        script={activeScript} settings={settings}
-        onSettingsChange={handleSettingsChange} onBack={() => setView("editor")}
-      />
-    );
+    return <TeleprompterView script={activeScript} settings={settings} onSettingsChange={handleSettingsChange} onBack={() => setView("editor")} />;
   }
 
   if (view === "editor" && activeScript) {
-    return (
-      <ScriptEditor
-        script={activeScript} settings={settings}
-        onSave={handleSave} onBack={() => setView("list")}
-        onStartTeleprompter={handleStartTeleprompter}
-        onSettingsChange={handleSettingsChange}
-      />
-    );
+    return <ScriptEditor script={activeScript} settings={settings} onSave={handleSave} onBack={() => setView("list")} onStartTeleprompter={handleStartTeleprompter} onSettingsChange={handleSettingsChange} />;
   }
 
   const hasScripts = scripts.length > 0;
   const filtered   = query.trim()
     ? scripts.filter((s) => {
-        const q     = query.toLowerCase();
-        const plain = s.body.replace(/<[^>]*>/g, " ").toLowerCase();
-        return s.title.toLowerCase().includes(q) || plain.includes(q);
+        const q = query.toLowerCase();
+        return s.title.toLowerCase().includes(q) || s.body.replace(/<[^>]*>/g, " ").toLowerCase().includes(q);
       })
     : scripts;
   const totalWords = scripts.reduce((acc, s) => {
-    const plain = s.body.replace(/<[^>]*>/g, " ").trim();
-    return acc + (plain ? plain.split(/\s+/).length : 0);
+    const t = s.body.replace(/<[^>]*>/g, " ").trim();
+    return acc + (t ? t.split(/\s+/).length : 0);
   }, 0);
 
-  // ── Shared top section ───────────────────────────────────────────────────
-  const topPadding = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
+  const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
 
-  // ── EMPTY STATE ──────────────────────────────────────────────────────────
+  // Shell: fixed height, flex column — this is the key to making scroll work
+  const shell: React.CSSProperties = {
+    height: "100dvh",
+    background: "var(--bg)",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  };
+
+  // Scrollable inner area
+  const scroller: React.CSSProperties = {
+    flex: 1,
+    overflowY: "auto",
+    WebkitOverflowScrolling: "touch",
+  };
+
   if (!hasScripts) {
     return (
-      <div style={{ minHeight: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
-        <div style={{ flex: 1, overflowY: "auto" }}>
-          <div style={{ padding: `0 24px`, paddingTop: topPadding }}>
+      <div style={shell}>
+        <div style={scroller}>
+          <div style={{ padding: "0 24px 40px", paddingTop: topPad }}>
 
-            {/* Brand */}
-            <div style={{
-              fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)",
-              letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 28,
-            }}>ReelPrompt</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 28 }}>
+              ReelPrompt
+            </div>
 
-            {/* Guide carousel — fixed at top */}
+            {/* Guide */}
             <div style={{ marginBottom: 32 }}>
-              <div style={{
-                fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)",
-                letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10,
-              }}>How it works</div>
+              <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+                How it works
+              </div>
               <HowToGuide />
             </div>
 
             {/* CTA */}
-            <div style={{
-              display: "flex", flexDirection: "column",
-              alignItems: "center", textAlign: "center",
-              gap: 14, paddingBottom: 48,
-            }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: 16,
-                background: "var(--surface)", border: "1px solid var(--border)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 28,
-              }}>🎬</div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
+              <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🎬</div>
               <div>
                 <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Ready to record?</h2>
                 <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5 }}>
@@ -322,19 +241,15 @@ export default function Home() {
     );
   }
 
-  // ── SCRIPTS LIST ─────────────────────────────────────────────────────────
   return (
-    <div style={{ minHeight: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column" }}>
-      <div style={{ flex: 1, overflowY: "auto" }}>
-        <div style={{ padding: "0 24px", paddingTop: topPadding }}>
+    <div style={shell}>
+      <div style={scroller}>
+        <div style={{ padding: "0 24px 40px", paddingTop: topPad }}>
 
           {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 32 }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28 }}>
             <div>
-              <div style={{
-                fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)",
-                letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6,
-              }}>ReelPrompt</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>ReelPrompt</div>
               <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
                 Your<br />Scripts
               </h1>
@@ -356,23 +271,20 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Guide carousel */}
+          {/* Guide */}
           <div style={{ marginBottom: 24 }}>
-            <div style={{
-              fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)",
-              letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10,
-            }}>How it works</div>
+            <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
+              How it works
+            </div>
             <HowToGuide />
           </div>
 
-          {/* Search — only when 3+ scripts */}
-          {scripts.length >= 3 && (
-            <SearchBar value={query} onChange={setQuery} />
-          )}
+          {/* Search */}
+          {scripts.length >= 3 && <SearchBar value={query} onChange={setQuery} />}
 
-          {/* Script cards */}
+          {/* Cards */}
           {filtered.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, paddingBottom: 40 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {filtered.map((s) => (
                 <ScriptCard key={s.id} script={s} onEdit={handleEdit} onDuplicate={duplicate} onDelete={remove} />
               ))}
@@ -384,7 +296,6 @@ export default function Home() {
           )}
         </div>
       </div>
-
       <Footer />
     </div>
   );
