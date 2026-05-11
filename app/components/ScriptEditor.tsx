@@ -515,11 +515,11 @@ export default function ScriptEditor({
         </button>
       </div>
 
-      {/* ── TOOLBAR ── */}
+      {/* ── TOOLBAR ROW 1: format ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: 6,
-        padding: "10px 16px", borderBottom: "1px solid var(--border)",
-        background: "var(--bg-2)", flexShrink: 0, overflowX: "auto",
+        padding: "8px 14px 6px", borderBottom: "1px solid var(--bg-3)",
+        background: "var(--bg-2)", flexShrink: 0,
       }}>
         <ToolbarBtn active={isBold} title="Bold (or **text**)" onClick={() => exec("bold")}>
           <IconBold />
@@ -528,7 +528,7 @@ export default function ScriptEditor({
           <IconItalic />
         </ToolbarBtn>
 
-        <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 2px" }} />
+        <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 4px" }} />
 
         {COLOURS.map((c) => (
           <button
@@ -543,30 +543,37 @@ export default function ScriptEditor({
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           />
         ))}
+      </div>
 
-        <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 2px" }} />
-
-        <ToolbarBtn title="Bullet list (or - )" onClick={() => exec("insertUnorderedList")}>
-          <IconList />
-        </ToolbarBtn>
-        <ToolbarBtn title="Clear formatting" onClick={() => exec("removeFormat")}>
-          <IconEraser />
-        </ToolbarBtn>
-
-        <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 2px" }} />
-
-        {/* Parse Markdown button */}
-        <ToolbarBtn title="Parse entire document as Markdown" onClick={handleParseMarkdown}>
-          <IconMD />
-        </ToolbarBtn>
-
-        {/* Markdown cheatsheet hint */}
+      {/* ── TOOLBAR ROW 2: actions pill ── */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "6px 14px 8px", borderBottom: "1px solid var(--border)",
+        background: "var(--bg-2)", flexShrink: 0,
+      }}>
         <div style={{
-          marginLeft: "auto", flexShrink: 0,
-          fontSize: 10, color: "var(--text-3)", fontFamily: "var(--font-mono)",
-          letterSpacing: "0.03em", whiteSpace: "nowrap", paddingRight: 4,
+          display: "flex", alignItems: "center", gap: 4,
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: 20, padding: "4px 10px",
         }}>
-          **bold** · *italic* · - list · # h1 · &gt; quote
+          <ToolbarBtn title="Bullet list (or - )" onClick={() => exec("insertUnorderedList")}>
+            <IconList />
+          </ToolbarBtn>
+          <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+          <ToolbarBtn title="Clear formatting" onClick={() => exec("removeFormat")}>
+            <IconEraser />
+          </ToolbarBtn>
+          <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+          <ToolbarBtn title="Parse entire document as Markdown" onClick={handleParseMarkdown}>
+            <IconMD />
+          </ToolbarBtn>
+          <div style={{ width: 1, height: 16, background: "var(--border)", margin: "0 2px" }} />
+          <div style={{
+            fontSize: 10, color: "var(--text-3)", fontFamily: "var(--font-mono)",
+            letterSpacing: "0.02em", whiteSpace: "nowrap", padding: "0 4px",
+          }}>
+            **b** · *i* · # h1
+          </div>
         </div>
       </div>
 
@@ -595,11 +602,14 @@ export default function ScriptEditor({
 
       {/* ── FOOTER ── */}
       <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "14px 20px", borderTop: "1px solid var(--border)",
-        flexShrink: 0, background: "var(--bg-2)", gap: 12,
+        borderTop: "1px solid var(--border)",
+        flexShrink: 0, background: "var(--bg-2)",
       }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "center", flexShrink: 0 }}>
+        {/* Row 1: stats + calibrate */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 14,
+          padding: "10px 16px 8px", borderBottom: "1px solid var(--bg-3)",
+        }}>
           <div>
             <span style={{ fontSize: 13, fontWeight: 700 }}>{wordCount}</span>
             <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", marginLeft: 4 }}>words</span>
@@ -621,7 +631,7 @@ export default function ScriptEditor({
                 fontSize: 11, fontFamily: "var(--font-mono)", letterSpacing: "0.04em",
                 color: settings.wpm ? "var(--green)" : "var(--accent)",
                 background: "none", border: "none", cursor: "pointer", padding: 0,
-                textTransform: "uppercase",
+                textTransform: "uppercase", marginLeft: "auto",
               }}
             >
               <IconTarget />
@@ -629,15 +639,20 @@ export default function ScriptEditor({
             </button>
           )}
         </div>
-
-        <button
-          className="btn btn-primary"
-          disabled={!hasContent}
-          style={{ opacity: hasContent ? 1 : 0.4, whiteSpace: "nowrap", background: "#ff3b30" }}
-          onClick={handleStartRecording}
-        >
-          Start Recording →
-        </button>
+        {/* Row 2: full-width record button */}
+        <div style={{ padding: "10px 14px 12px" }}>
+          <button
+            className="btn btn-primary"
+            disabled={!hasContent}
+            style={{
+              width: "100%", opacity: hasContent ? 1 : 0.4,
+              background: "#ff3b30", borderRadius: 12, height: 48, fontSize: 15,
+            }}
+            onClick={handleStartRecording}
+          >
+            ● Start Recording
+          </button>
+        </div>
       </div>
 
       {/* ── WPM CALIBRATOR ── */}
