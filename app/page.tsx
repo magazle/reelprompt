@@ -40,39 +40,44 @@ const GUIDE_STEPS = [
 function HowToGuide({ collapsible = false }: { collapsible?: boolean }) {
   const [open, setOpen] = useState(!collapsible);
 
-  const steps = (
+  const cards = (
     <div style={{
-      borderBottom: collapsible ? "1px solid var(--border)" : "none",
-      paddingBottom: collapsible ? 20 : 0,
-      display: "flex", flexDirection: "column",
-      animation: collapsible ? "slide-up 0.2s ease forwards" : "none",
-    }}>
+      display: "flex", gap: 12,
+      overflowX: "auto", paddingBottom: 16,
+      // hide scrollbar but keep scroll
+      scrollbarWidth: "none",
+      msOverflowStyle: "none",
+    } as React.CSSProperties}>
       {GUIDE_STEPS.map((step, i) => (
         <div key={i} style={{
-          display: "flex", gap: 16, alignItems: "flex-start",
-          padding: "14px 0",
-          borderBottom: i < GUIDE_STEPS.length - 1 ? "1px solid var(--border)" : "none",
+          flexShrink: 0,
+          width: 200,
+          background: "var(--surface)", border: "1px solid var(--border)",
+          borderRadius: 14, padding: "16px 16px 18px",
+          display: "flex", flexDirection: "column", gap: 10,
         }}>
-          <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          {/* Step number + emoji */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{
-              width: 32, height: 32, borderRadius: 10,
-              background: "var(--surface)", border: "1px solid var(--border)",
+              width: 36, height: 36, borderRadius: 10,
+              background: "var(--bg)", border: "1px solid var(--border)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 16,
+              fontSize: 18,
             }}>
               {step.emoji}
             </div>
-            {i < GUIDE_STEPS.length - 1 && (
-              <div style={{ width: 1, height: 16, background: "var(--border)" }} />
-            )}
+            <span style={{
+              fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)",
+              letterSpacing: "0.08em",
+            }}>
+              0{i + 1}
+            </span>
           </div>
-          <div style={{ paddingTop: 4 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4, color: "var(--text)" }}>
-              {step.title}
-            </div>
-            <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
-              {step.body}
-            </div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", lineHeight: 1.3 }}>
+            {step.title}
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.55 }}>
+            {step.body}
           </div>
         </div>
       ))}
@@ -81,22 +86,21 @@ function HowToGuide({ collapsible = false }: { collapsible?: boolean }) {
 
   if (!collapsible) {
     return (
-      <div style={{ marginBottom: 8 }}>
+      <div style={{ margin: "0 -24px", padding: "0 24px", overflow: "hidden" }}>
         <div style={{
-          fontSize: 13, fontWeight: 600, color: "var(--text-2)",
-          fontFamily: "var(--font-display)",
-          paddingBottom: 12, marginBottom: 4,
-          borderBottom: "1px solid var(--border)",
+          fontSize: 11, fontWeight: 600, color: "var(--text-3)",
+          fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
+          textTransform: "uppercase", marginBottom: 12,
         }}>
-          How to use ReelPrompt
+          How it works
         </div>
-        {steps}
+        {cards}
       </div>
     );
   }
 
   return (
-    <div style={{ marginBottom: 24 }}>
+    <div style={{ margin: "0 -24px", padding: "0 24px", overflow: "hidden" }}>
       <button
         onClick={() => setOpen((v) => !v)}
         style={{
@@ -104,20 +108,21 @@ function HowToGuide({ collapsible = false }: { collapsible?: boolean }) {
           display: "flex", alignItems: "center", justifyContent: "space-between",
           cursor: "pointer", padding: "14px 0",
           borderTop: "1px solid var(--border)",
-          borderBottom: open ? "none" : "1px solid var(--border)",
         }}
       >
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)", fontFamily: "var(--font-display)" }}>
-          How to use ReelPrompt
+        <span style={{
+          fontSize: 11, fontWeight: 600, color: "var(--text-3)",
+          fontFamily: "var(--font-mono)", letterSpacing: "0.08em", textTransform: "uppercase",
+        }}>
+          How it works
         </span>
         <span style={{
           fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)",
-          letterSpacing: "0.06em", display: "inline-block",
-          transition: "transform 0.2s",
+          display: "inline-block", transition: "transform 0.2s",
           transform: open ? "rotate(180deg)" : "none",
         }}>▾</span>
       </button>
-      {open && steps}
+      {open && cards}
     </div>
   );
 }
@@ -266,7 +271,7 @@ export default function Home() {
         <div style={{
           padding: "56px 24px 0",
           paddingTop: "max(56px, env(safe-area-inset-top, 0px) + 40px)",
-          flex: 1, display: "flex", flexDirection: "column",
+          flex: 1, display: "flex", flexDirection: "column", overflowY: "auto",
         }}>
           {/* Brand */}
           <div style={{
