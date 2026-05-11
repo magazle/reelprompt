@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { checkProUser } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
 
 const KO_FI_URL = "https://ko-fi.com/s/e02564e7cc";
@@ -41,15 +42,22 @@ export default function PricingView({ isPro, onBack }: Props) {
 
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
-  // Returning user: just send a magic link directly.
-  // useAuth will check pro_users after the link is clicked (when the user
-  // is authenticated), so no Supabase query is needed here.
   const handleSignIn = async () => {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes("@")) { setEmailError("Enter a valid email address."); return; }
     if (isOffline) { setEmailError("You're offline — connect to the internet to sign in."); return; }
     setSending(true);
     setEmailError("");
+
+    // Verify the email is registered as Pro before sending the link.
+    // Works now because RLS on pro_users is set to USING (true) — readable by anyone.
+    const isProUser = await checkProUser(trimmed);
+    if (!isProUser) {
+      setEmailError("This email isn't registered as Pro. Did you complete activation at reelprompt.xyz/?pro=success after purchase?");
+      setSending(false);
+      return;
+    }
+
     const { error } = await signIn(trimmed);
     if (error) { setEmailError("Something went wrong — try again."); setSending(false); return; }
     setSent(true);
@@ -161,7 +169,7 @@ export default function PricingView({ isPro, onBack }: Props) {
             )}
           </div>
 
-          {/* Already a Pro member — returning user sign-in */}
+          {/* Already a Pro member */}
           {!isPro && (
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Already a Pro member?</div>
@@ -193,10 +201,10 @@ export default function PricingView({ isPro, onBack }: Props) {
                     />
                     <button onClick={handleSignIn} disabled={sending || isOffline} className="btn btn-primary"
                       style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: sending || isOffline ? 0.7 : 1 }}>
-                      {sending ? "Sending…" : "Send →"}
+                      {sending ? "Checking…" : "Send →"}
                     </button>
                   </div>
-                  {emailError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{emailError}</p>}
+                  {emailError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>{emailError}</p>}
                 </>
               )}
 
