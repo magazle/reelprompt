@@ -25,6 +25,8 @@ const COLOURS = [
   { label: "Blue",   value: "#64D2FF" },
 ];
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
 function htmlToPlain(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
@@ -42,6 +44,109 @@ function formatReadTime(secs: number) {
   if (secs < 60) return `${secs}s`;
   return `${Math.floor(secs / 60)}m ${secs % 60}s`;
 }
+
+// ── Markdown live transformer ─────────────────────────────────────────────
+// Called on Space and Enter keydown inside the contentEditable.
+// Inspects the current text node for Markdown patterns and transforms them.
+function applyMarkdownTransform(e: React.KeyboardEvent<HTMLDivElement>): boolean {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return false;
+
+  const range = sel.getRangeAt(0);
+  const node  = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return false;
+
+  const text   = node.textContent ?? "";
+  const offset = range.startOffset;
+  // Only look at text before the caret
+  const before = text.slice(0, offset);
+
+  // ── Inline patterns (applied on Space) ──
+  if (e.key === " ") {
+    // **bold** → <strong>
+    const boldMatch = before.match(/\*\*(.+)\*\*$/);
+    if (boldMatch) {
+      e.preventDefault();
+      const matched = boldMatch[0];
+      const inner   = boldMatch[1];
+      const start   = offset - matched.length;
+      // Replace the markdown syntax with a bold node + space
+      const r = document.createRange();
+      r.setStart(node, start);
+      r.setEnd(node, offset);
+      r.deleteContents();
+      const strong = document.createElement("strong");
+      strong.textContent = inner;
+      r.insertNode(strong);
+      // Move caret after strong, insert space
+      const space = document.createTextNode(" ");
+      strong.after(space);
+      sel.collapse(space, 1);
+      return true;
+    }
+
+    // *italic* → <em>
+    const italicMatch = before.match(/(?<!\*)\*(?!\*)(.+)(?<!\*)\*(?!\*)$/);
+    if (italicMatch) {
+      e.preventDefault();
+      const matched = italicMatch[0];
+      const inner   = italicMatch[1];
+      const start   = offset - matched.length;
+      const r = document.createRange();
+      r.setStart(node, start);
+      r.setEnd(node, offset);
+      r.deleteContents();
+      const em = document.createElement("em");
+      em.textContent = inner;
+      r.insertNode(em);
+      const space = document.createTextNode(" ");
+      em.after(space);
+      sel.collapse(space, 1);
+      return true;
+    }
+  }
+
+  // ── Block patterns (applied on Space, triggered at start of line) ──
+  if (e.key === " ") {
+    // "- " → bullet list item
+    if (before === "-") {
+      e.preventDefault();
+      // Delete the "-" character
+      const r = document.createRange();
+      r.setStart(node, offset - 1);
+      r.setEnd(node, offset);
+      r.deleteContents();
+      document.execCommand("insertUnorderedList");
+      return true;
+    }
+
+    // "# " → H1 (large bold block)
+    if (before === "#") {
+      e.preventDefault();
+      const r = document.createRange();
+      r.setStart(node, offset - 1);
+      r.setEnd(node, offset);
+      r.deleteContents();
+      document.execCommand("formatBlock", false, "h1");
+      return true;
+    }
+
+    // "## " → H2
+    if (before === "##") {
+      e.preventDefault();
+      const r = document.createRange();
+      r.setStart(node, offset - 2);
+      r.setEnd(node, offset);
+      r.deleteContents();
+      document.execCommand("formatBlock", false, "h2");
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// ── Toolbar button ────────────────────────────────────────────────────────
 
 function ToolbarBtn({ active, title, onClick, children }: {
   active?: boolean; title: string; onClick: () => void; children: React.ReactNode;
@@ -63,7 +168,8 @@ function ToolbarBtn({ active, title, onClick, children }: {
   );
 }
 
-// ── WPM Calibrator (inline, inside editor) ────────────────────────────────
+// ── WPM Calibrator overlay ────────────────────────────────────────────────
+
 type CalState = "idle" | "running" | "done";
 
 function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
@@ -74,8 +180,8 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
 }) {
   const [state, setState]     = useState<CalState>("idle");
   const [elapsed, setElapsed] = useState(0);
-  const startRef  = useRef<number>(0);
-  const timerRef  = useRef<NodeJS.Timeout | null>(null);
+  const startRef = useRef<number>(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
@@ -103,11 +209,9 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
   }, [wordCount, onCalibrated]);
 
   return (
-    // Fullscreen overlay on top of the editor
     <div style={{
       position: "absolute", inset: 0, zIndex: 50,
-      background: "var(--bg)", display: "flex", flexDirection: "column",
-      overflow: "hidden",
+      background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
       {/* Header */}
       <div style={{
@@ -122,16 +226,13 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
           </div>
         </div>
         {currentWpm && (
-          <div style={{
-            fontSize: 11, color: "var(--green)", fontFamily: "var(--font-mono)",
-            display: "flex", gap: 4, alignItems: "center",
-          }}>
+          <div style={{ fontSize: 11, color: "var(--green)", fontFamily: "var(--font-mono)", display: "flex", gap: 4, alignItems: "center" }}>
             <span>✓</span> {currentWpm} WPM
           </div>
         )}
       </div>
 
-      {/* Instructions banner */}
+      {/* Instructions */}
       <div style={{
         margin: "16px 20px 0",
         background: "var(--surface)", border: "1px solid var(--border)",
@@ -140,30 +241,13 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
       }}>
         <span style={{ fontSize: 20 }}>⏱</span>
         <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-          {state === "idle" && (
-            <>
-              Press <strong style={{ color: "var(--text)" }}>Start</strong> then read your
-              entire script aloud at your natural pace.
-              Read <strong style={{ color: "var(--text)" }}>the whole script</strong> — the
-              timer needs the full reading to calculate your WPM accurately.
-              Press <strong style={{ color: "var(--text)" }}>Done</strong> when you finish the last word.
-            </>
-          )}
-          {state === "running" && (
-            <>
-              Keep reading… Press <strong style={{ color: "var(--text)" }}>Done</strong> when
-              you finish <strong style={{ color: "var(--text)" }}>the last word</strong> of your script.
-            </>
-          )}
-          {state === "done" && (
-            <>
-              Scroll speed has been set automatically. You can fine-tune it in Settings at any time.
-            </>
-          )}
+          {state === "idle" && <>Press <strong style={{ color: "var(--text)" }}>Start</strong> then read your entire script aloud at your natural pace. Read <strong style={{ color: "var(--text)" }}>the whole script</strong> — the timer needs the full reading to calculate your WPM accurately. Press <strong style={{ color: "var(--text)" }}>Done</strong> when you finish the last word.</>}
+          {state === "running" && <>Keep reading… Press <strong style={{ color: "var(--text)" }}>Done</strong> when you finish <strong style={{ color: "var(--text)" }}>the last word</strong>.</>}
+          {state === "done" && <>Scroll speed has been set automatically. You can fine-tune it in Settings at any time.</>}
         </div>
       </div>
 
-      {/* Script text — scrollable */}
+      {/* Script text */}
       <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
         <div
           style={{
@@ -171,29 +255,34 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
             fontFamily: "var(--font-serif)", fontStyle: "italic",
             color: "var(--text)",
             opacity: state === "idle" ? 0.6 : 1,
-            transition: "opacity 0.3s",
-            wordBreak: "break-word",
+            transition: "opacity 0.3s", wordBreak: "break-word",
           }}
           dangerouslySetInnerHTML={{ __html: script.body }}
         />
       </div>
 
-      {/* Footer CTA */}
+      {/* Footer */}
       <div style={{
         padding: "16px 20px", borderTop: "1px solid var(--border)",
         background: "var(--bg-2)", flexShrink: 0,
         display: "flex", gap: 12, alignItems: "center",
       }}>
-        {/* Timer */}
         {state === "running" && (
           <div style={{
             fontSize: 28, fontFamily: "var(--font-mono)", fontWeight: 700,
             color: "var(--accent)", letterSpacing: "0.04em", minWidth: 64,
-          }}>
-            {elapsed}s
-          </div>
+          }}>{elapsed}s</div>
         )}
-
+        {state === "idle" && (
+          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleStart}>
+            ▶ Start Reading
+          </button>
+        )}
+        {state === "running" && (
+          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleDone}>
+            ✓ Done — finished reading
+          </button>
+        )}
         {state === "done" && (
           <div style={{ flex: 1, display: "flex", gap: 12 }}>
             <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => { setState("idle"); setElapsed(0); }}>
@@ -204,40 +293,30 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
             </button>
           </div>
         )}
-
-        {state === "idle" && (
-          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleStart}>
-            ▶ Start Reading
-          </button>
-        )}
-
-        {state === "running" && (
-          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleDone}>
-            ✓ Done — finished reading
-          </button>
-        )}
       </div>
     </div>
   );
 }
 
 // ── Main ScriptEditor ─────────────────────────────────────────────────────
+
 export default function ScriptEditor({
   script, settings, onSave, onBack, onStartTeleprompter, onSettingsChange,
 }: Props) {
-  const [title, setTitle]         = useState(script.title);
-  const [saved, setSaved]         = useState(true);
+  const [title, setTitle]               = useState(script.title);
+  const [saved, setSaved]               = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showCalibrator, setShowCalibrator] = useState(false);
-  const editorRef                 = useRef<HTMLDivElement>(null);
-  const saveTimerRef              = useRef<NodeJS.Timeout | null>(null);
-  const currentScript             = useRef(script);
-  currentScript.current           = script;
+  const [isBold, setIsBold]             = useState(false);
+  const [isItalic, setIsItalic]         = useState(false);
+  const [wordCount, setWordCount]       = useState(countWords(script.body));
 
-  const [isBold, setIsBold]       = useState(false);
-  const [isItalic, setIsItalic]   = useState(false);
-  const [wordCount, setWordCount] = useState(countWords(script.body));
+  const editorRef      = useRef<HTMLDivElement>(null);
+  const saveTimerRef   = useRef<NodeJS.Timeout | null>(null);
+  const currentScript  = useRef(script);
+  currentScript.current = script;
 
+  // Inject saved HTML on first mount only
   useEffect(() => {
     if (editorRef.current && script.body) {
       editorRef.current.innerHTML = script.body;
@@ -287,6 +366,17 @@ export default function ScriptEditor({
     handleInput();
   };
 
+  // ── Markdown live detection ──
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === " " || e.key === "Enter") {
+      const transformed = applyMarkdownTransform(e);
+      if (transformed) {
+        // Give the DOM a tick to settle then save
+        setTimeout(handleInput, 0);
+      }
+    }
+  }, [handleInput]);
+
   const handleStartRecording = () => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     const html = editorRef.current?.innerHTML ?? "";
@@ -311,7 +401,10 @@ export default function ScriptEditor({
   const readTime   = formatReadTime(readTimeSec(wordCount, settings.wpm));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "var(--bg)", overflow: "hidden", position: "relative" }}>
+    <div style={{
+      display: "flex", flexDirection: "column", height: "100dvh",
+      background: "var(--bg)", overflow: "hidden", position: "relative",
+    }}>
 
       {/* ── HEADER ── */}
       <div style={{
@@ -337,26 +430,21 @@ export default function ScriptEditor({
         }}>
           {saved ? <><IconCheck /> saved</> : "saving…"}
         </div>
-        {/* Settings button */}
-        <button
-          className="btn btn-icon"
-          title="Settings"
-          onClick={() => setShowSettings(true)}
-        >
+        <button className="btn btn-icon" title="Settings" onClick={() => setShowSettings(true)}>
           <IconSettings />
         </button>
       </div>
 
-      {/* ── FORMATTING TOOLBAR ── */}
+      {/* ── TOOLBAR ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: 6,
         padding: "10px 16px", borderBottom: "1px solid var(--border)",
         background: "var(--bg-2)", flexShrink: 0, overflowX: "auto",
       }}>
-        <ToolbarBtn active={isBold} title="Bold" onClick={() => exec("bold")}>
+        <ToolbarBtn active={isBold} title="Bold (or type **text**)" onClick={() => exec("bold")}>
           <IconBold />
         </ToolbarBtn>
-        <ToolbarBtn active={isItalic} title="Italic" onClick={() => exec("italic")}>
+        <ToolbarBtn active={isItalic} title="Italic (or type *text*)" onClick={() => exec("italic")}>
           <IconItalic />
         </ToolbarBtn>
 
@@ -378,12 +466,21 @@ export default function ScriptEditor({
 
         <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 2px" }} />
 
-        <ToolbarBtn title="Bullet list" onClick={() => exec("insertUnorderedList")}>
+        <ToolbarBtn title="Bullet list (or type - )" onClick={() => exec("insertUnorderedList")}>
           <IconList />
         </ToolbarBtn>
         <ToolbarBtn title="Clear formatting" onClick={() => exec("removeFormat")}>
           <IconEraser />
         </ToolbarBtn>
+
+        {/* Markdown hint */}
+        <div style={{
+          marginLeft: "auto", flexShrink: 0,
+          fontSize: 10, color: "var(--text-3)", fontFamily: "var(--font-mono)",
+          letterSpacing: "0.04em", whiteSpace: "nowrap", paddingRight: 4,
+        }}>
+          **bold** · *italic* · - list · # h1
+        </div>
       </div>
 
       {/* ── RICH TEXT EDITOR ── */}
@@ -393,10 +490,11 @@ export default function ScriptEditor({
           contentEditable
           suppressContentEditableWarning
           onInput={handleInput}
+          onKeyDown={handleKeyDown}
           onKeyUp={updateToolbarState}
           onMouseUp={updateToolbarState}
           onSelect={updateToolbarState}
-          data-placeholder="Write your script here…&#10;&#10;Select text to colour it. Use Bold for emphasis, Italic for tone, Green for stage directions."
+          data-placeholder="Write your script here…&#10;&#10;Markdown works: **bold**, *italic*, - bullet, # heading&#10;Or use the toolbar above."
           className="rich-editor"
           style={{
             minHeight: "100%", padding: "20px",
@@ -414,12 +512,10 @@ export default function ScriptEditor({
         flexShrink: 0, background: "var(--bg-2)", gap: 12,
       }}>
         <div style={{ display: "flex", gap: 14, alignItems: "center", flexShrink: 0 }}>
-          {/* Word count */}
           <div>
             <span style={{ fontSize: 13, fontWeight: 700 }}>{wordCount}</span>
             <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", marginLeft: 4 }}>words</span>
           </div>
-          {/* Estimated read time */}
           {hasContent && (
             <div>
               <span style={{ fontSize: 13, fontWeight: 700 }}>{readTime}</span>
@@ -428,7 +524,6 @@ export default function ScriptEditor({
               </span>
             </div>
           )}
-          {/* Calibrate button */}
           {hasContent && (
             <button
               title="Calibrate scroll speed to your reading pace"
