@@ -7,18 +7,16 @@ import { countWords } from "./lib/utils";
 import ScriptCard from "./components/ScriptCard";
 import ScriptEditor from "./components/ScriptEditor";
 import TeleprompterView from "./components/TeleprompterView";
+import PricingView from "./components/PricingView";
+import SuccessView from "./components/SuccessView";
 import { IconPlus } from "./components/Icons";
 
-type View = "list" | "editor" | "teleprompter";
+type View = "list" | "editor" | "teleprompter" | "pricing" | "success";
 type SortOrder = "recent" | "oldest" | "az";
 
 
 
 // ── PWA Install Banner ────────────────────────────────────────────────────
-// Android/Chrome: captures the beforeinstallprompt event and shows a button.
-// iOS Safari: detects the platform and shows manual instructions.
-// Dismissed state persists for the session only (no localStorage — not worth
-// the friction of a permanent dismiss that blocks future installs).
 
 function useInstallPrompt() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,17 +26,14 @@ function useInstallPrompt() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
-    // Already installed as PWA
     const standalone = window.matchMedia("(display-mode: standalone)").matches
       || ("standalone" in navigator && (navigator as { standalone?: boolean }).standalone === true);
     setIsStandalone(standalone);
     if (standalone) return;
 
-    // iOS detection (no beforeinstallprompt support)
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios/i.test(navigator.userAgent);
     setIsIOS(ios);
 
-    // Android / Chrome / Edge — capture the prompt
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handler = (e: any) => {
       e.preventDefault();
@@ -59,9 +54,6 @@ function useInstallPrompt() {
     }
   }, []);
 
-  // canShowTip covers browsers that support neither beforeinstallprompt (Chrome/Edge)
-  // nor the iOS Safari path — e.g. Brave, Firefox, Samsung Internet.
-  // We show a generic manual tip so the user always has a path to install.
   const canShowTip = !isStandalone && !canInstall && !isIOS;
 
   return { canInstall, isIOS, isStandalone, canShowTip, triggerInstall };
@@ -297,12 +289,10 @@ function HowToModal({ onClose }: { onClose: () => void }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Handle */}
         <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px", flexShrink: 0 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--border-2)" }} />
         </div>
 
-        {/* Header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "4px 20px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0,
@@ -311,7 +301,6 @@ function HowToModal({ onClose }: { onClose: () => void }) {
             <h2 style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>
               {lang === "en" ? "How to use ReelPrompt" : "Come usare ReelPrompt"}
             </h2>
-            {/* Language toggle */}
             <div style={{ display: "flex", gap: 4 }}>
               {(["en", "it"] as const).map((l) => (
                 <button
@@ -343,7 +332,6 @@ function HowToModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Steps — scrollable */}
         <div style={{ overflowY: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
           {steps.map((step, i) => (
             <div
@@ -353,7 +341,6 @@ function HowToModal({ onClose }: { onClose: () => void }) {
                 borderBottom: i < steps.length - 1 ? "1px solid var(--border)" : "none",
               }}
             >
-              {/* Step number */}
               <div style={{ flexShrink: 0 }}>
                 <div style={{
                   width: 34, height: 34, borderRadius: "50%",
@@ -364,7 +351,6 @@ function HowToModal({ onClose }: { onClose: () => void }) {
                   {i + 1}
                 </div>
               </div>
-              {/* Content */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 18 }}>{step.emoji}</span>
@@ -377,7 +363,6 @@ function HowToModal({ onClose }: { onClose: () => void }) {
             </div>
           ))}
 
-          {/* Footer note */}
           <div style={{
             margin: "0 20px 8px", padding: "14px 16px",
             background: "var(--bg-2)", borderRadius: 12,
@@ -395,7 +380,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Footer (hidden on narrow mobile) ─────────────────────────────────────
+// ── Footer ─────────────────────────────────────────────────────────────────
 
 function Footer() {
   return (
@@ -423,26 +408,94 @@ function Footer() {
   );
 }
 
+// ── Pro button ────────────────────────────────────────────────────────────
+
+function ProButton({ isPro, onClick }: { isPro: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      title={isPro ? "You have Pro ✦" : "Upgrade to Pro"}
+      style={{
+        height: 38, padding: "0 14px", borderRadius: 12,
+        background: isPro ? "var(--bg-2)" : "var(--accent)",
+        color: isPro ? "var(--accent)" : "white",
+        border: isPro ? "1px solid var(--border-2)" : "none",
+        fontFamily: "var(--font-display)", fontWeight: 700,
+        fontSize: 13, cursor: "pointer",
+        display: "flex", alignItems: "center", gap: 5,
+        transition: "background 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        if (!isPro) (e.currentTarget as HTMLButtonElement).style.background = "var(--accent-2)";
+      }}
+      onMouseLeave={(e) => {
+        if (!isPro) (e.currentTarget as HTMLButtonElement).style.background = "var(--accent)";
+      }}
+    >
+      ✦ {isPro ? "Pro" : "Go Pro"}
+    </button>
+  );
+}
+
 // ── Root ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { scripts, create, save, remove, duplicate } = useScripts();
   const [view, setView]                 = useState<View>("list");
   const [activeScript, setActiveScript] = useState<Script | null>(null);
-  // Lazy initialiser: getSettings() is synchronous — no useEffect, no null flash
   const [settings, setSettings]         = useState<TeleprompterSettings>(getSettings);
   const [query, setQuery]               = useState("");
   const [sort, setSort]                 = useState<SortOrder>("recent");
   const [showHowTo, setShowHowTo]       = useState(false);
+  const [isPro, setIsPro]               = useState<boolean>(() => {
+    try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
+  });
+
+  // Detect ?pro=success redirect from Ko-fi
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pro") === "success") {
+      setView("success");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   const handleCreate = () => { const s = create(); setActiveScript(s); setView("editor"); };
   const handleEdit   = (s: Script) => { setActiveScript(s); setView("editor"); };
   const handleSave   = (s: Script) => { const u = save(s); setActiveScript(u); return u; };
   const handleRecord = useCallback((s: Script) => { setActiveScript(s); setView("teleprompter"); }, []);
   const handleStartTeleprompter = (s: Script) => { setActiveScript(s); setView("teleprompter"); };
-  // Single source of truth for settings persistence — components only call onSettingsChange
   const handleSettingsChange = (s: TeleprompterSettings) => { setSettings(s); saveSettings(s); };
   const cycleSort = () => setSort((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
+
+  const handleActivate = (key: string) => {
+    localStorage.setItem("reelprompt:pro", "true");
+    localStorage.setItem("reelprompt:pro-key", key);
+    setIsPro(true);
+    setView("list");
+  };
+
+  // ── Views ─────────────────────────────────────────────────────────────────
+
+  if (view === "success") {
+    return (
+      <SuccessView
+        onActivate={handleActivate}
+        onBack={() => setView("list")}
+      />
+    );
+  }
+
+  if (view === "pricing") {
+    return (
+      <PricingView
+        isPro={isPro}
+        onBack={() => setView("list")}
+        onActivate={handleActivate}
+      />
+    );
+  }
 
   if (view === "teleprompter" && activeScript) {
     return <TeleprompterView script={activeScript} settings={settings} onSettingsChange={handleSettingsChange} onBack={() => setView("editor")} />;
@@ -455,7 +508,6 @@ export default function Home() {
   const hasScripts  = scripts.length > 0;
   const totalWords  = scripts.reduce((acc, s) => acc + countWords(s.body), 0);
 
-  // Filter
   const afterFilter = query.trim()
     ? scripts.filter((s) => {
         const q = query.toLowerCase();
@@ -463,11 +515,10 @@ export default function Home() {
       })
     : scripts;
 
-  // Sort
   const filtered = [...afterFilter].sort((a, b) => {
     if (sort === "oldest") return a.updatedAt - b.updatedAt;
     if (sort === "az")     return a.title.localeCompare(b.title);
-    return b.updatedAt - a.updatedAt; // recent (default)
+    return b.updatedAt - a.updatedAt;
   });
 
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
@@ -486,7 +537,7 @@ export default function Home() {
     WebkitOverflowScrolling: "touch",
   };
 
-  // ── Empty state (no scripts yet) ─────────────────────────────────────────
+  // ── Empty state ───────────────────────────────────────────────────────────
 
   if (!hasScripts) {
     return (
@@ -498,22 +549,24 @@ export default function Home() {
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                 ReelPrompt
               </div>
-              <button
-                onClick={() => setShowHowTo(true)}
-                title="How to use"
-                style={{
-                  width: 38, height: 38, borderRadius: 12,
-                  background: "var(--surface)", border: "1px solid var(--border-2)",
-                  color: "var(--text-2)", fontSize: 15, fontWeight: 700,
-                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "var(--font-display)",
-                }}
-              >
-                ?
-              </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <button
+                  onClick={() => setShowHowTo(true)}
+                  title="How to use"
+                  style={{
+                    width: 38, height: 38, borderRadius: 12,
+                    background: "var(--surface)", border: "1px solid var(--border-2)",
+                    color: "var(--text-2)", fontSize: 15, fontWeight: 700,
+                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "var(--font-display)",
+                  }}
+                >
+                  ?
+                </button>
+                <ProButton isPro={isPro} onClick={() => setView("pricing")} />
+              </div>
             </div>
 
-            {/* PWA install prompt */}
             <InstallBanner />
 
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14, paddingTop: 32 }}>
@@ -543,7 +596,6 @@ export default function Home() {
       <div style={scroller}>
         <div style={{ padding: "0 24px 40px", paddingTop: topPad }}>
 
-          {/* Header — title, stats badges, and New button all in one row */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
             <div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>ReelPrompt</div>
@@ -570,16 +622,15 @@ export default function Home() {
               >
                 ?
               </button>
+              <ProButton isPro={isPro} onClick={() => setView("pricing")} />
               <button className="btn btn-primary" style={{ borderRadius: 14 }} onClick={handleCreate}>
                 <IconPlus /> New
               </button>
             </div>
           </div>
 
-          {/* PWA install prompt */}
           <InstallBanner />
 
-          {/* Search + sort — always visible once there are scripts */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
             <div style={{ flex: 1 }}>
               <SearchBar value={query} onChange={setQuery} />
@@ -589,10 +640,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* How-it-works — only shown to first-time users; hidden once scripts exist and user has seen it */}
-          {/* Collapsed behind a disclosure after first script — show it only on the empty state */}
-
-          {/* Cards */}
           {filtered.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {filtered.map((s) => (
@@ -607,7 +654,6 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            /* Empty search result state */
             <div style={{ textAlign: "center", padding: "48px 0 24px" }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
               <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No scripts match "{query}"</p>
