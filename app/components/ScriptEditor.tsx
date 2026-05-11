@@ -633,7 +633,7 @@ export default function ScriptEditor({
         <button
           className="btn btn-primary"
           disabled={!hasContent}
-          style={{ opacity: hasContent ? 1 : 0.4, whiteSpace: "nowrap" }}
+          style={{ opacity: hasContent ? 1 : 0.4, whiteSpace: "nowrap", background: "#ff3b30" }}
           onClick={handleStartRecording}
         >
           Start Recording →
