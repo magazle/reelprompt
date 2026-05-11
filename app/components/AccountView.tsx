@@ -20,16 +20,15 @@ export default function AccountView({ onBack, onSignOut }: Props) {
   const [email, setEmail] = useState("");
   const [syncState, setSyncState] = useState<SyncState>("idle");
   const [syncError, setSyncError] = useState("");
+  const [signedOut, setSignedOut] = useState(false);
 
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
   const handleSignOut = async () => {
-    // signOut in useAuth already clears localStorage and dispatches
-    // "reelprompt:signed-out" synchronously before the Supabase call,
-    // so page.tsx will reset isPro immediately. We call onSignOut()
-    // here just to navigate back to the list.
     await signOut();
-    onSignOut();
+    setSignedOut(true);
+    // Navigate back after a brief moment so the user sees the confirmation
+    setTimeout(() => onSignOut(), 1200);
   };
 
   const handleSendMagicLink = async () => {
@@ -38,7 +37,6 @@ export default function AccountView({ onBack, onSignOut }: Props) {
     if (isOffline) { setSyncError("You're offline — connect to the internet to sign in."); return; }
     setSyncState("sending");
     setSyncError("");
-    // Verify this email has Pro before sending the magic link
     const isPro = await checkProUser(trimmed);
     if (!isPro) {
       setSyncError("This email isn't registered as Pro. Check your activation email or contact support.");
@@ -68,6 +66,17 @@ export default function AccountView({ onBack, onSignOut }: Props) {
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
+
+  // ── Sign-out confirmation ─────────────────────────────────────────────────
+  if (signedOut) {
+    return (
+      <div style={{ ...shell, alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <div style={{ fontSize: 36 }}>👋</div>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>You've been signed out</div>
+        <div style={{ fontSize: 13, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>See you next time.</div>
+      </div>
+    );
+  }
 
   return (
     <div style={shell}>
