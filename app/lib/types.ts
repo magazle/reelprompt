@@ -1,19 +1,23 @@
 export interface Script {
   id: string;
   title: string;
-  body: string;
+  body: string;        // HTML string (rich text)
   createdAt: number;
   updatedAt: number;
 }
 
 export interface TeleprompterSettings {
-  speed: number; // 1-10
-  fontSize: number; // px
-  lineSpacing: number; // 1-3
-  textWidth: number; // 50-100%
+  speed: number;                            // 1–10
+  fontSize: number;                         // px
+  lineSpacing: number;                      // 1–3
+  textWidth: number;                        // 50–100%
   position: "top" | "center" | "bottom";
   mirrorText: boolean;
   mirrorVideo: boolean;
+  textBackground: "none" | "band" | "full";
+  fontStyle: "serif" | "sans";
+  textStroke: boolean;
+  wpm: number | null;                       // null = not calibrated
 }
 
 export const DEFAULT_SETTINGS: TeleprompterSettings = {
@@ -24,4 +28,8 @@ export const DEFAULT_SETTINGS: TeleprompterSettings = {
   position: "center",
   mirrorText: false,
   mirrorVideo: true,
+  textBackground: "band",
+  fontStyle: "serif",
+  textStroke: false,
+  wpm: null,
 };
