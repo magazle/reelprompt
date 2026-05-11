@@ -46,6 +46,7 @@ export function useAuth() {
           localStorage.removeItem("reelprompt:pro");
           localStorage.removeItem("reelprompt:pro-key");
           localStorage.removeItem("reelprompt:welcomed");
+          window.dispatchEvent(new Event("reelprompt:signed-out"));
         }
 
         // setUser is called last so any useEffect([user]) in page.tsx
