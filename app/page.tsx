@@ -250,7 +250,7 @@ function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLog
 
 export default function Home() {
   const { user, loading: authLoading, isPro, sessionToken } = useAuth();
-  const { scripts, syncing, create, save, remove, duplicate } = useScripts(
+  const { scripts, syncing, syncNow, create, save, remove, duplicate } = useScripts(
     user?.id,
     sessionToken,
   );
@@ -408,6 +408,16 @@ export default function Home() {
           <InstallBanner />
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
             <div style={{ flex: 1 }}><SearchBar value={query} onChange={setQuery} /></div>
+            {isPro && user && (
+              <button
+                onClick={syncNow}
+                disabled={syncing}
+                title="Sync scripts"
+                style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 16, cursor: syncing ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: syncing ? 0.5 : 1, marginBottom: 16, flexShrink: 0, transition: "opacity 0.2s" }}
+              >
+                {syncing ? "…" : "↻"}
+              </button>
+            )}
             <div style={{ marginBottom: 16 }}><SortButton sort={sort} onToggle={cycleSort} /></div>
           </div>
           {filtered.length > 0 ? (
