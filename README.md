@@ -6,7 +6,6 @@ ReelPrompt is a mobile-first Progressive Web App for creators who record short v
 
 No account. No backend. No subscription. Everything stays on your device.
 
-→ **[reelprompt.vercel.app](https://reelprompt.vercel.app)**
 
 ---
 
