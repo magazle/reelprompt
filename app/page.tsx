@@ -249,8 +249,11 @@ function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLog
 // ── Root ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { scripts, create, save, remove, duplicate } = useScripts();
-  const { user, loading: authLoading, isPro } = useAuth();
+  const { user, loading: authLoading, isPro, sessionToken } = useAuth();
+  const { scripts, syncing, create, save, remove, duplicate } = useScripts(
+    user?.id,
+    sessionToken,
+  );
   const [view, setView]                 = useState<View>("list");
   const [activeScript, setActiveScript] = useState<Script | null>(null);
   const [settings, setSettings]         = useState<TeleprompterSettings>(getSettings);
