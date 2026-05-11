@@ -116,7 +116,7 @@ export default function AccountView({ onBack, onSignOut }: Props) {
                       onBlur={(e) => (e.currentTarget.style.borderColor = syncError ? "#ff3b30" : "var(--border)")} />
                     <button onClick={handleSendMagicLink} disabled={syncState === "sending" || isOffline} className="btn btn-primary"
                       style={{ padding: "10px 14px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: syncState === "sending" || isOffline ? 0.7 : 1 }}>
-                      {syncState === "sending" ? "..." : "Send"}
+                      {syncState === "sending" ? "Checking…" : "Send"}
                     </button>
                   </div>
                   {syncError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{syncError}</p>}
