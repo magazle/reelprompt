@@ -159,3 +159,14 @@ textarea.input { resize: none; line-height: 1.6; min-height: 200px; }
   overflow: hidden;
 }
 .script-card-preview [style*="color"] { opacity: 0.85; }
+
+/* ── Responsive visibility ── */
+/* Touch breakpoint: hide desktop-only elements on narrow touch screens     */
+/* We use pointer:coarse (touch) not width, so desktop browser at 375px     */
+/* still shows desktop UI, while mobile always gets the clean swipe layout. */
+@media (pointer: coarse) {
+  .desktop-only { display: none !important; }
+}
+@media (pointer: fine) {
+  .mobile-only { display: none !important; }
+}
