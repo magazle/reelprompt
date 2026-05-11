@@ -26,14 +26,22 @@ export async function validateProCode(
   } catch { return "error"; }
 }
 
-// maybeSingle() returns null (not an error) when no row is found
+// Uses raw fetch instead of the Supabase JS client to avoid
+// potential issues with shared client state or concurrent requests.
 export async function checkProUser(email: string): Promise<boolean> {
   try {
-    const { data } = await supabase
-      .from("pro_users")
-      .select("email")
-      .eq("email", email.trim().toLowerCase())
-      .maybeSingle();
-    return !!data;
+    const encoded = encodeURIComponent(email.trim().toLowerCase());
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/pro_users?select=email&email=eq.${encoded}`,
+      {
+        headers: {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      }
+    );
+    if (!res.ok) return false;
+    const data = await res.json();
+    return Array.isArray(data) && data.length > 0;
   } catch { return false; }
 }
