@@ -5,21 +5,21 @@
 @tailwind utilities;
 
 :root {
-  --bg:           #080808;
-  --bg-2:         #111111;
-  --bg-3:         #1a1a1a;
-  --surface:      #1e1e1e;
-  --surface-2:    #262626;
-  --border:       #2a2a2a;
-  --border-2:     #333333;
-  --text:         #f0f0f0;
-  --text-2:       #999999;
-  --text-3:       #555555;
-  --accent:       #ff3b30;
-  --accent-2:     #ff6b35;
-  --accent-glow:  rgba(255, 59, 48, 0.3);
-  --green:        #30d158;
-  --blue:         #0a84ff;
+  --bg:          #080808;
+  --bg-2:        #111111;
+  --bg-3:        #1a1a1a;
+  --surface:     #1e1e1e;
+  --surface-2:   #262626;
+  --border:      #2a2a2a;
+  --border-2:    #333333;
+  --text:        #f0f0f0;
+  --text-2:      #999999;
+  --text-3:      #555555;
+  --accent:      #ff3b30;
+  --accent-2:    #ff6b35;
+  --accent-glow: rgba(255, 59, 48, 0.3);
+  --green:       #30d158;
+  --blue:        #0a84ff;
   --font-display: 'Syne', sans-serif;
   --font-mono:    'DM Mono', monospace;
   --font-serif:   'Instrument Serif', serif;
@@ -40,7 +40,7 @@ html, body {
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 1px; }
 
-/* ── Teleprompter text fade mask ── */
+/* ── Teleprompter fade mask ── */
 .prompt-fade {
   -webkit-mask-image: linear-gradient(to bottom,
     transparent 0%, black 20%, black 55%, black 75%, transparent 100%);
@@ -48,7 +48,7 @@ html, body {
     transparent 0%, black 20%, black 55%, black 75%, transparent 100%);
 }
 
-/* ── Focus-line highlight ── */
+/* ── Focus zone highlight ── */
 .focus-line {
   background: linear-gradient(to bottom,
     transparent,
@@ -59,15 +59,15 @@ html, body {
 }
 
 /* ── Animations ── */
-@keyframes rec-pulse  { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
-@keyframes slide-up   { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-@keyframes fade-in    { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scale-in   { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes rec-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+@keyframes slide-up  { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fade-in   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scale-in  { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-.animate-slide-up  { animation: slide-up 0.3s ease forwards; }
-.animate-fade-in   { animation: fade-in 0.2s ease forwards; }
-.animate-scale-in  { animation: scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-.rec-pulse         { animation: rec-pulse 1.2s ease-in-out infinite; }
+.animate-slide-up { animation: slide-up 0.3s ease forwards; }
+.animate-fade-in  { animation: fade-in 0.2s ease forwards; }
+.animate-scale-in { animation: scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.rec-pulse        { animation: rec-pulse 1.2s ease-in-out infinite; }
 
 /* ── Buttons ── */
 .btn {
@@ -126,14 +126,10 @@ html, body {
 .input::placeholder { color: var(--text-3); }
 textarea.input { resize: none; line-height: 1.6; min-height: 200px; }
 
-/* ────────────────────────────────────────────
-   RICH TEXT EDITOR
-──────────────────────────────────────────── */
+/* ── Rich text editor ── */
 .rich-editor {
   caret-color: var(--accent);
 }
-
-/* Placeholder via data-attribute (only when empty) */
 .rich-editor:empty::before {
   content: attr(data-placeholder);
   color: var(--text-3);
@@ -141,14 +137,12 @@ textarea.input { resize: none; line-height: 1.6; min-height: 200px; }
   white-space: pre-line;
   display: block;
 }
-
-/* Make sure pasted/typed content looks right */
 .rich-editor b, .rich-editor strong { font-weight: 800; }
 .rich-editor i, .rich-editor em     { font-style: italic; }
 .rich-editor ul { padding-left: 1.4em; list-style: disc; margin: 0.4em 0; }
 .rich-editor li { margin: 0.2em 0; }
 
-/* ── Script card preview (rich HTML, 2 lines) ── */
+/* ── Script card HTML preview ── */
 .script-card-preview {
   font-size: 13px;
   color: var(--text-2);
@@ -157,13 +151,5 @@ textarea.input { resize: none; line-height: 1.6; min-height: 200px; }
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  /* Reset any colour spans so they're legible on dark bg */
 }
-/* Colours in preview: keep them but softer */
 .script-card-preview [style*="color"] { opacity: 0.85; }
-
-/* ── Teleprompter rendered HTML ── */
-.prompt-html b, .prompt-html strong { font-weight: 800; }
-.prompt-html i, .prompt-html em     { font-style: italic; }
-.prompt-html ul { padding-left: 1.2em; list-style: disc; margin: 0.3em 0; }
-.prompt-html li { margin: 0.2em 0; }
