@@ -86,7 +86,11 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
   useEffect(() => {
     camera.startCamera().then((stream) => {
       // Stream arrived after the video element was already mounted — attach now.
-      if (stream && videoElRef.current) videoElRef.current.srcObject = stream;
+      if (stream && videoElRef.current) {
+        videoElRef.current.srcObject = stream;
+        videoElRef.current.onloadedmetadata = () =>
+          camera.initPortraitEncoder(videoElRef.current!);
+      }
     });
     wake.acquire();
     return () => { camera.stopCamera(); scroll.stop(); wake.release(); };
@@ -96,10 +100,15 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
   // Ref callback: fires when the <video> element mounts.
   // If the stream is already ready (fast devices), attach immediately.
   // Otherwise videoElRef is saved and the .then() above attaches once ready.
+  // After attaching the stream, initialise the portrait canvas encoder.
   const attachVideo = useCallback((el: HTMLVideoElement | null) => {
     videoElRef.current = el;
-    if (el && camera.streamRef.current) el.srcObject = camera.streamRef.current;
-  }, [camera.streamRef]);
+    if (el && camera.streamRef.current) {
+      el.srcObject = camera.streamRef.current;
+      // Wait for video to have dimensions then start the portrait canvas encoder
+      el.onloadedmetadata = () => camera.initPortraitEncoder(el);
+    }
+  }, [camera.streamRef, camera.initPortraitEncoder]);
 
   // ── Tap to scroll / reveal controls ──
   const handleTap = useCallback(() => {
@@ -326,7 +335,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
                 style={{ width: "100%", paddingTop: 16, paddingBottom: 16, fontSize: 16, gap: 10 }}
                 onClick={() => camera.downloadRecording(script.title || "reelprompt")}
               >
-                <IconDownload /> Save Video
+                <IconDownload /> Save Video…
               </button>
               <button
                 className="btn btn-ghost"
