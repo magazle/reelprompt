@@ -32,6 +32,11 @@ const FEATURES_PRO = [
   "All future Pro features",
 ];
 
+// "Already a Pro member?" section has 3 steps:
+// "email"  → user enters email; if found → magic link sent → "sent"
+//                                if not found → ask for code → "code"
+// "code"   → user enters activation code → magic link sent → "sent"
+// "sent"   → confirmation, stay on this page (don't navigate away)
 type SignInStep = "email" | "code" | "sent";
 
 export default function PricingView({ isPro, onBack }: Props) {
@@ -46,7 +51,6 @@ export default function PricingView({ isPro, onBack }: Props) {
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
   const [activatingCode, setActivatingCode] = useState(false);
-
   const [sendingLink, setSendingLink] = useState(false);
 
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
@@ -59,12 +63,11 @@ export default function PricingView({ isPro, onBack }: Props) {
     setEmailError("");
     const isProUser = await checkProUser(trimmed);
     if (isProUser) {
-      // Email is registered — send magic link directly
       const { error } = await signIn(trimmed);
       if (error) { setEmailError("Something went wrong — try again."); setCheckingEmail(false); return; }
       setSignInStep("sent");
     } else {
-      // Email not found — ask for activation code
+      // Email not registered yet — they need to activate with a code first
       setSignInStep("code");
     }
     setCheckingEmail(false);
@@ -79,7 +82,6 @@ export default function PricingView({ isPro, onBack }: Props) {
     const result = await validateProCode(trimmed);
     if (result === "ok") {
       localStorage.setItem("reelprompt:pending-code", trimmed);
-      // Now send magic link
       setSendingLink(true);
       const { error } = await signIn(email);
       if (error) { setCodeError("Code accepted but couldn't send magic link — try again."); setSendingLink(false); setActivatingCode(false); return; }
@@ -87,8 +89,8 @@ export default function PricingView({ isPro, onBack }: Props) {
       setSendingLink(false);
     } else {
       const msgs = {
-        invalid: "Code not found — double-check your email.",
-        already_used: "This code has already been used.",
+        invalid: "Code not found — double-check your email from Ko-fi.",
+        already_used: "This code has already been used. Contact support if this is unexpected.",
         error: "Something went wrong — try again.",
       };
       setCodeError(msgs[result]);
@@ -171,9 +173,20 @@ export default function PricingView({ isPro, onBack }: Props) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
                 Support ReelPrompt ✦
               </a>
-              <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 12, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                After purchase you'll receive an activation code by email.
-              </p>
+              {/* Step-by-step instructions for new buyers */}
+              <div style={{ marginTop: 14, padding: "12px 14px", background: "var(--bg-2)", borderRadius: 10, border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 6, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.05em" }}>How it works</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {[
+                    "1. Pay on Ko-fi — you'll get an activation code by email",
+                    "2. Come back here → Already a Pro member? → enter your email",
+                    "3. If your email isn't registered yet, you'll be asked for the code",
+                    "4. Check your email for a magic sign-in link and tap it",
+                  ].map((step) => (
+                    <div key={step} style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>{step}</div>
+                  ))}
+                </div>
+              </div>
             </div>
 
             {/* Ko-fi donate — Pro users only */}
@@ -198,7 +211,7 @@ export default function PricingView({ isPro, onBack }: Props) {
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Already a Pro member?</div>
 
-              {/* Collapsed state */}
+              {/* Collapsed */}
               {!showSignIn && (
                 <button onClick={() => setShowSignIn(true)}
                   style={{ width: "100%", padding: "10px 0", borderRadius: 10, background: "var(--bg-2)", border: "1px solid var(--border)", color: "var(--text-2)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 13, cursor: "pointer", transition: "background 0.15s" }}
@@ -212,7 +225,7 @@ export default function PricingView({ isPro, onBack }: Props) {
               {showSignIn && signInStep === "email" && (
                 <>
                   <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                    Enter your email — if it's registered we'll send a magic link instantly.
+                    Enter your email. If it's registered we'll send a magic link — otherwise we'll ask for your activation code.
                   </p>
                   {isOffline && (
                     <p style={{ fontSize: 11, color: "#ff3b30", marginBottom: 10, fontFamily: "var(--font-mono)" }}>📡 You're offline — connect to sign in.</p>
@@ -227,19 +240,22 @@ export default function PricingView({ isPro, onBack }: Props) {
                     />
                     <button onClick={handleCheckEmail} disabled={checkingEmail || isOffline} className="btn btn-primary"
                       style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: checkingEmail || isOffline ? 0.7 : 1 }}>
-                      {checkingEmail ? "..." : "Next →"}
+                      {checkingEmail ? "Checking…" : "Next →"}
                     </button>
                   </div>
                   {emailError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{emailError}</p>}
                 </>
               )}
 
-              {/* Step: code (email not found) */}
+              {/* Step: code (email not yet registered — first-time activation) */}
               {showSignIn && signInStep === "code" && (
                 <>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                    <strong>{email}</strong> is not registered yet. Enter your activation code to complete setup.
-                  </p>
+                  <div style={{ padding: "10px 12px", background: "var(--bg-2)", borderRadius: 10, border: "1px solid var(--border)", marginBottom: 14 }}>
+                    <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>
+                      <strong style={{ color: "var(--text-2)" }}>{email}</strong> isn't registered yet.<br />
+                      Enter the activation code from your Ko-fi confirmation email to complete setup.
+                    </div>
+                  </div>
                   <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                     <input type="text" placeholder="REELPRO-XXXXX" value={code} autoFocus
                       onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeError(""); }}
@@ -250,22 +266,27 @@ export default function PricingView({ isPro, onBack }: Props) {
                     />
                     <button onClick={handleActivateCode} disabled={activatingCode || sendingLink} className="btn btn-primary"
                       style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: activatingCode || sendingLink ? 0.7 : 1 }}>
-                      {activatingCode || sendingLink ? "..." : "Activate"}
+                      {activatingCode || sendingLink ? "…" : "Activate"}
                     </button>
                   </div>
-                  {codeError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{codeError}</p>}
-                  <button onClick={() => setSignInStep("email")} style={{ fontSize: 11, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)", padding: 0 }}>← Use a different email</button>
+                  {codeError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 4, fontFamily: "var(--font-mono)" }}>{codeError}</p>}
+                  <button onClick={() => { setSignInStep("email"); setCode(""); setCodeError(""); }} style={{ fontSize: 11, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)", padding: 0, marginTop: 8 }}>← Use a different email</button>
                 </>
               )}
 
-              {/* Step: sent */}
+              {/* Step: sent — stay here, don't navigate away */}
               {showSignIn && signInStep === "sent" && (
-                <div style={{ textAlign: "center", padding: "8px 0" }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>📬</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Check your email</div>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                    We sent a magic link to <strong>{email}</strong>.<br />Tap it to sign in on any device.
+                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>📬</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Check your email</div>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6, fontFamily: "var(--font-mono)", marginBottom: 16 }}>
+                    We sent a magic link to <strong style={{ color: "var(--text-2)" }}>{email}</strong>.<br />
+                    Tap it to sign in — you can close this page while you wait.
                   </p>
+                  <button onClick={() => { setShowSignIn(false); setSignInStep("email"); setEmail(""); setCode(""); }}
+                    style={{ fontSize: 12, color: "var(--text-3)", background: "none", border: "none", cursor: "pointer", fontFamily: "var(--font-mono)" }}>
+                    Use a different email
+                  </button>
                 </div>
               )}
             </div>
