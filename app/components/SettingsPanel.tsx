@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { TeleprompterSettings } from "../lib/types";
+import { Script, TeleprompterSettings } from "../lib/types";
 import { saveSettings } from "../lib/storage";
 import { IconTarget } from "./Icons";
 
@@ -8,18 +8,22 @@ interface Props {
   settings: TeleprompterSettings;
   onChange: (s: TeleprompterSettings) => void;
   onClose: () => void;
+  script?: Script;
 }
 
-// Calibration texts
-const CAL_TEXTS = {
-  en: {
-    label: "EN",
-    text:
-      "Welcome to ReelPrompt. This short passage helps measure your natural speaking pace. " +
-      "Read it aloud at the speed you would normally record a video. " +
-      "Speak clearly, just like you are talking to your audience. " +
-      "Do not rush and do not slow down. Just be yourself.",
-  },
+// Strip HTML tags → plain text for calibration
+function htmlToPlain(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<\/p>/gi, " ")
+    .replace(/<\/li>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Preset texts
+const PRESETS = {
   it: {
     label: "IT",
     text:
@@ -28,12 +32,21 @@ const CAL_TEXTS = {
       "Parla in modo chiaro, come se stessi parlando al tuo pubblico. " +
       "Non affrettarti e non rallentare artificialmente. Sii semplicemente te stesso.",
   },
+  en: {
+    label: "EN",
+    text:
+      "Welcome to ReelPrompt. This short passage helps measure your natural speaking pace. " +
+      "Read it aloud at the speed you would normally record a video. " +
+      "Speak clearly, just like you are talking to your audience. " +
+      "Do not rush and do not slow down. Just be yourself.",
+  },
 };
 
-type Lang = "en" | "it";
-type CalState = "idle" | "ready" | "running" | "done";
+type PresetLang = "it" | "en";
+type CalMode    = "preset" | "script";
+type CalState   = "idle" | "ready" | "running" | "done";
 
-/* ── Reusable UI pieces ── */
+/* ── small reusable pieces ── */
 function Slider({ label, value, min, max, step, onChange, display }: {
   label: string; value: number; min: number; max: number;
   step: number; onChange: (v: number) => void; display?: string;
@@ -87,20 +100,29 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 /* ── WPM Calibrator ── */
-function WPMCalibrator({ currentWpm, onCalibrated }: {
+function WPMCalibrator({ currentWpm, script, onCalibrated }: {
   currentWpm: number | null;
+  script?: Script;
   onCalibrated: (wpm: number, speed: number) => void;
 }) {
-  const [state, setState] = useState<CalState>("idle");
-  const [lang, setLang]   = useState<Lang>("it");
+  const [state, setState]   = useState<CalState>("idle");
+  const [mode, setMode]     = useState<CalMode>("preset");
+  const [lang, setLang]     = useState<PresetLang>("it");
   const [elapsed, setElapsed] = useState(0);
+
   const startRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
-  const calText  = CAL_TEXTS[lang].text;
-  const calWords = calText.trim().split(/\s+/).length;
+  // Resolve the active text and word count
+  const scriptPlain  = script ? htmlToPlain(script.body) : "";
+  const hasScript    = scriptPlain.length > 0;
+
+  const activeText   = mode === "script" && hasScript
+    ? scriptPlain
+    : PRESETS[lang].text;
+  const activeWords  = activeText.trim().split(/\s+/).length;
 
   const handleStart = useCallback(() => {
     setState("running");
@@ -114,14 +136,13 @@ function WPMCalibrator({ currentWpm, onCalibrated }: {
     if (timerRef.current) clearInterval(timerRef.current);
     const seconds = (Date.now() - startRef.current) / 1000;
     if (seconds < 2) return; // guard against accidental double-tap
-    const wpm   = Math.round((calWords / seconds) * 60);
-    // Map wpm 80–240 → speed 1–10 (linear)
+    const wpm   = Math.round((activeWords / seconds) * 60);
     const speed = parseFloat(
       Math.min(10, Math.max(1, ((wpm - 80) / 160) * 9 + 1)).toFixed(1)
     );
     setState("done");
     onCalibrated(wpm, speed);
-  }, [calWords, onCalibrated]);
+  }, [activeWords, onCalibrated]);
 
   const reset = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -129,15 +150,13 @@ function WPMCalibrator({ currentWpm, onCalibrated }: {
     setElapsed(0);
   }, []);
 
-  const boxStyle: React.CSSProperties = {
-    background: "var(--surface)", borderRadius: 14, padding: 16, marginTop: 4,
-    border: `1px solid ${state === "running" ? "var(--accent)" : "var(--border)"}`,
-  };
-
   // ── IDLE / DONE ──
   if (state === "idle" || state === "done") return (
-    <div style={boxStyle}>
-      {/* How it works notice */}
+    <div style={{
+      background: "var(--surface)", borderRadius: 14, padding: 16, marginTop: 4,
+      border: "1px solid var(--border)",
+    }}>
+      {/* How it works */}
       <div style={{
         background: "var(--bg-2)", borderRadius: 10, padding: "10px 14px",
         marginBottom: 14, border: "1px solid var(--border)",
@@ -145,8 +164,9 @@ function WPMCalibrator({ currentWpm, onCalibrated }: {
       }}>
         <span style={{ fontSize: 16, flexShrink: 0 }}>⏱</span>
         <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, margin: 0 }}>
-          <strong style={{ color: "var(--text-2)" }}>Come funziona:</strong> leggi il testo ad alta voce, premi Start quando inizi e Fine quando finisci.
-          L'app misura il tempo trascorso e calcola i tuoi WPM — nessun microfono utilizzato.
+          <strong style={{ color: "var(--text-2)" }}>Come funziona:</strong> leggi il testo ad alta voce,
+          premi Start quando inizi e Fine quando finisci. L'app misura il tempo e calcola i tuoi WPM —
+          nessun microfono utilizzato.
         </p>
       </div>
 
@@ -166,26 +186,76 @@ function WPMCalibrator({ currentWpm, onCalibrated }: {
     </div>
   );
 
-  // ── READY (language pick + text) ──
+  // ── READY ──
   if (state === "ready") return (
-    <div style={boxStyle}>
-      {/* Language toggle */}
+    <div style={{
+      background: "var(--surface)", borderRadius: 14, padding: 16, marginTop: 4,
+      border: "1px solid var(--border)",
+    }}>
+
+      {/* Mode selector: Preset | Script */}
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-        {(["it", "en"] as Lang[]).map((l) => (
-          <button key={l} onClick={() => setLang(l)} style={{
-            flex: 1, padding: "8px 0", borderRadius: 8, cursor: "pointer",
-            fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
-            letterSpacing: "0.06em", textTransform: "uppercase",
-            background: lang === l ? "var(--accent)" : "var(--surface-2)",
-            border: `1px solid ${lang === l ? "var(--accent)" : "var(--border)"}`,
-            color: lang === l ? "white" : "var(--text-3)",
+        {/* Preset button */}
+        <button
+          onClick={() => setMode("preset")}
+          style={{
+            flex: 1, padding: "9px 0", borderRadius: 10, cursor: "pointer",
+            background: mode === "preset" ? "var(--accent)" : "var(--surface-2)",
+            border: `1px solid ${mode === "preset" ? "var(--accent)" : "var(--border)"}`,
+            color: mode === "preset" ? "white" : "var(--text-2)",
+            fontSize: 12, fontWeight: 700, fontFamily: "var(--font-display)",
           }}>
-            {CAL_TEXTS[l].label}
-          </button>
-        ))}
+          Testo preset
+        </button>
+
+        {/* Script button */}
+        <button
+          onClick={() => hasScript && setMode("script")}
+          title={!hasScript ? "Apri uno script per usare questa modalità" : undefined}
+          style={{
+            flex: 1, padding: "9px 0", borderRadius: 10,
+            cursor: hasScript ? "pointer" : "not-allowed",
+            background: mode === "script" ? "var(--accent)" : "var(--surface-2)",
+            border: `1px solid ${mode === "script" ? "var(--accent)" : "var(--border)"}`,
+            color: mode === "script" ? "white" : hasScript ? "var(--text-2)" : "var(--text-3)",
+            fontSize: 12, fontWeight: 700, fontFamily: "var(--font-display)",
+            opacity: hasScript ? 1 : 0.45,
+          }}>
+          Il mio script
+        </button>
       </div>
 
-      {/* How-it-works reminder */}
+      {/* Lang toggle — only shown in preset mode */}
+      {mode === "preset" && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          {(["it", "en"] as PresetLang[]).map((l) => (
+            <button key={l} onClick={() => setLang(l)} style={{
+              flex: 1, padding: "7px 0", borderRadius: 8, cursor: "pointer",
+              fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 700,
+              letterSpacing: "0.06em", textTransform: "uppercase",
+              background: lang === l ? "var(--surface)" : "transparent",
+              border: `1px solid ${lang === l ? "var(--accent)" : "var(--border)"}`,
+              color: lang === l ? "var(--accent)" : "var(--text-3)",
+            }}>
+              {PRESETS[l].label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Script mode: no-script warning */}
+      {mode === "script" && !hasScript && (
+        <div style={{
+          background: "var(--bg-2)", borderRadius: 10, padding: "10px 14px",
+          marginBottom: 12, border: "1px solid var(--border)",
+        }}>
+          <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, margin: 0 }}>
+            Nessuno script attivo. Apri uno script dall'editor per usare questa modalità.
+          </p>
+        </div>
+      )}
+
+      {/* Reminder */}
       <div style={{
         background: "var(--bg-2)", borderRadius: 10, padding: "10px 14px",
         marginBottom: 12, border: "1px solid var(--border)",
@@ -193,20 +263,37 @@ function WPMCalibrator({ currentWpm, onCalibrated }: {
       }}>
         <span style={{ fontSize: 15, flexShrink: 0 }}>⏱</span>
         <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, margin: 0 }}>
-          Premi <strong style={{ color: "var(--text-2)" }}>Start</strong> e leggi il testo qui sotto ad alta voce al tuo ritmo naturale, poi premi <strong style={{ color: "var(--text-2)" }}>Fine</strong>.
+          Premi <strong style={{ color: "var(--text-2)" }}>Start</strong>, leggi il testo ad alta voce
+          al tuo ritmo naturale, poi premi <strong style={{ color: "var(--text-2)" }}>Fine</strong>.
           Nessun microfono — è solo un cronometro.
         </p>
       </div>
 
-      {/* Calibration text */}
-      <p style={{
-        fontSize: 15, lineHeight: 1.8, color: "var(--text)",
-        fontFamily: "var(--font-serif)", fontStyle: "italic",
-        marginBottom: 16, padding: "14px 16px",
-        background: "var(--bg)", borderRadius: 10, border: "1px solid var(--border)",
+      {/* Text preview — scrollable if long (script mode) */}
+      <div style={{
+        maxHeight: mode === "script" ? 180 : "none",
+        overflowY: mode === "script" ? "auto" : "visible",
+        marginBottom: 16,
       }}>
-        {calText}
-      </p>
+        <p style={{
+          fontSize: mode === "script" ? 14 : 15,
+          lineHeight: 1.8, color: "var(--text)",
+          fontFamily: "var(--font-serif)", fontStyle: "italic",
+          padding: "14px 16px", margin: 0,
+          background: "var(--bg)", borderRadius: 10, border: "1px solid var(--border)",
+          whiteSpace: "pre-wrap",
+        }}>
+          {activeText}
+        </p>
+      </div>
+
+      {/* Word count info */}
+      <div style={{
+        fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)",
+        marginBottom: 14, textAlign: "right",
+      }}>
+        {activeWords} parole
+      </div>
 
       <div style={{ display: "flex", gap: 8 }}>
         <button className="btn btn-ghost" style={{ flex: 1, fontSize: 13 }} onClick={reset}>
@@ -221,11 +308,11 @@ function WPMCalibrator({ currentWpm, onCalibrated }: {
 
   // ── RUNNING ──
   return (
-    <div style={boxStyle}>
-      {/* Timer */}
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12,
-      }}>
+    <div style={{
+      background: "var(--surface)", borderRadius: 14, padding: 16, marginTop: 4,
+      border: "1px solid var(--accent)",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={{
           fontSize: 11, fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
           textTransform: "uppercase", color: "var(--text-2)",
@@ -241,15 +328,23 @@ function WPMCalibrator({ currentWpm, onCalibrated }: {
         </span>
       </div>
 
-      {/* Text to read */}
-      <p style={{
-        fontSize: 15, lineHeight: 1.8, color: "var(--text)",
-        fontFamily: "var(--font-serif)", fontStyle: "italic",
-        marginBottom: 16, padding: "14px 16px",
-        background: "var(--bg)", borderRadius: 10, border: "1px solid var(--border)",
+      {/* Scrollable text during reading */}
+      <div style={{
+        maxHeight: mode === "script" ? 200 : "none",
+        overflowY: mode === "script" ? "auto" : "visible",
+        marginBottom: 16,
       }}>
-        {calText}
-      </p>
+        <p style={{
+          fontSize: mode === "script" ? 14 : 15,
+          lineHeight: 1.8, color: "var(--text)",
+          fontFamily: "var(--font-serif)", fontStyle: "italic",
+          padding: "14px 16px", margin: 0,
+          background: "var(--bg)", borderRadius: 10, border: "1px solid var(--border)",
+          whiteSpace: "pre-wrap",
+        }}>
+          {activeText}
+        </p>
+      </div>
 
       <button className="btn btn-primary" style={{ width: "100%", fontSize: 14 }}
         onClick={handleDone}>
@@ -260,18 +355,20 @@ function WPMCalibrator({ currentWpm, onCalibrated }: {
 }
 
 /* ── Main SettingsPanel ── */
-export default function SettingsPanel({ settings, onChange, onClose }: Props) {
+export default function SettingsPanel({ settings, onChange, onClose, script }: Props) {
   const set = (patch: Partial<TeleprompterSettings>) => onChange({ ...settings, ...patch });
 
   const handleCalibrated = (wpm: number, speed: number) => {
     const updated = { ...settings, wpm, speed };
     onChange(updated);
-    saveSettings(updated); // persist immediately so speed survives re-renders
+    saveSettings(updated);
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}
-      onClick={onClose}>
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}
+      onClick={onClose}
+    >
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }} />
       <div
         style={{
@@ -281,7 +378,6 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Handle */}
         <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--border-2)" }} />
         </div>
@@ -291,15 +387,12 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
             Impostazioni Teleprompter
           </h2>
 
-          {/* ── SCROLL SPEED ── */}
           <Slider label="Velocità Scorrimento" value={settings.speed} min={1} max={10} step={0.5}
             display={`${settings.speed}/10`} onChange={(v) => set({ speed: v })} />
 
-          {/* ── WPM CALIBRATION ── */}
           <SectionLabel>Calibrazione Velocità</SectionLabel>
-          <WPMCalibrator currentWpm={settings.wpm} onCalibrated={handleCalibrated} />
+          <WPMCalibrator currentWpm={settings.wpm} script={script} onCalibrated={handleCalibrated} />
 
-          {/* ── TEXT DISPLAY ── */}
           <SectionLabel>Testo</SectionLabel>
           <Slider label="Dimensione Font" value={settings.fontSize} min={20} max={64} step={2}
             display={`${settings.fontSize}px`} onChange={(v) => set({ fontSize: v })} />
@@ -308,7 +401,6 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
           <Slider label="Larghezza Testo" value={settings.textWidth} min={50} max={100} step={5}
             display={`${settings.textWidth}%`} onChange={(v) => set({ textWidth: v })} />
 
-          {/* Font style */}
           <div style={{ marginBottom: 20 }}>
             <p style={{ fontSize: 13, color: "var(--text-2)", fontWeight: 500, marginBottom: 10 }}>Stile Font</p>
             <div style={{ display: "flex", gap: 8 }}>
@@ -327,7 +419,6 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
             </div>
           </div>
 
-          {/* Text background */}
           <div style={{ marginBottom: 8 }}>
             <p style={{ fontSize: 13, color: "var(--text-2)", fontWeight: 500, marginBottom: 10 }}>Sfondo Testo</p>
             <div style={{ display: "flex", gap: 8 }}>
@@ -337,7 +428,7 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
                   background: settings.textBackground === bg ? "var(--accent)" : "var(--surface)",
                   border: `1px solid ${settings.textBackground === bg ? "var(--accent)" : "var(--border)"}`,
                   color: settings.textBackground === bg ? "white" : "var(--text-2)",
-                  fontSize: 12, fontWeight: 600, fontFamily: "var(--font-display)", textTransform: "capitalize",
+                  fontSize: 12, fontWeight: 600, fontFamily: "var(--font-display)",
                 }}>
                   {bg === "none" ? "Nessuno" : bg === "band" ? "Banda" : "Pieno"}
                 </button>
@@ -351,7 +442,6 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
           <Toggle label="Contorno Testo" sub="Bordo scuro sottile — utile su sfondi chiari"
             value={settings.textStroke} onChange={(v) => set({ textStroke: v })} />
 
-          {/* ── LAYOUT ── */}
           <SectionLabel>Layout</SectionLabel>
           <div style={{ marginBottom: 16 }}>
             <p style={{ fontSize: 13, color: "var(--text-2)", fontWeight: 500, marginBottom: 10 }}>Posizione Testo</p>
@@ -370,7 +460,6 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
             </div>
           </div>
 
-          {/* ── MIRROR ── */}
           <SectionLabel>Specchio</SectionLabel>
           <Toggle label="Specchia Video" sub="Attivo di default per la fotocamera frontale"
             value={settings.mirrorVideo} onChange={(v) => set({ mirrorVideo: v })} />
