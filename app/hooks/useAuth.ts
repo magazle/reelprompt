@@ -16,7 +16,6 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const u = session?.user ?? null;
-        setUser(u);
 
         if (event === "SIGNED_IN" && u?.email) {
           const pendingCode = localStorage.getItem("reelprompt:pending-code");
@@ -33,6 +32,9 @@ export function useAuth() {
               localStorage.setItem("reelprompt:pro", "true");
             }
           }
+          // Notify page.tsx that Pro status was resolved asynchronously.
+          // Fires AFTER localStorage is written so page.tsx reads the correct value.
+          window.dispatchEvent(new Event("reelprompt:pro-updated"));
         }
 
         if (event === "SIGNED_OUT") {
@@ -40,6 +42,10 @@ export function useAuth() {
           localStorage.removeItem("reelprompt:pro-key");
           localStorage.removeItem("reelprompt:welcomed");
         }
+
+        // setUser is called last so any useEffect([user]) in page.tsx
+        // runs after the Pro flag is already in localStorage.
+        setUser(u);
       }
     );
 

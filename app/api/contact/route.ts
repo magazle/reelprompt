@@ -1,5 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { message, userEmail } = await req.json();
@@ -7,6 +16,9 @@ export async function POST(req: NextRequest) {
     if (!message?.trim()) {
       return NextResponse.json({ error: "No message" }, { status: 400 });
     }
+
+    const safeMessage = escapeHtml(message.trim()).replace(/\n/g, "<br>");
+    const safeEmail   = escapeHtml(userEmail ?? "unknown");
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -17,11 +29,11 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: "noreply@leomagazzu.it",
         to: "noreply@leomagazzu.it",
-        subject: `ReelPrompt — message from ${userEmail}`,
+        subject: `ReelPrompt — message from ${safeEmail}`,
         html: `
-          <p><strong>From:</strong> ${userEmail}</p>
+          <p><strong>From:</strong> ${safeEmail}</p>
           <p><strong>Message:</strong></p>
-          <p>${message.replace(/\n/g, "<br>")}</p>
+          <p>${safeMessage}</p>
         `,
       }),
     });

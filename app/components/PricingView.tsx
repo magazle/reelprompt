@@ -57,8 +57,8 @@ export default function PricingView({ isPro, onBack }: Props) {
     if (isOffline) { setEmailError("You're offline — connect to the internet to sign in."); return; }
     setCheckingEmail(true);
     setEmailError("");
-    const isPro = await checkProUser(trimmed);
-    if (isPro) {
+    const isProUser = await checkProUser(trimmed);
+    if (isProUser) {
       // Email is registered — send magic link directly
       const { error } = await signIn(trimmed);
       if (error) { setEmailError("Something went wrong — try again."); setCheckingEmail(false); return; }

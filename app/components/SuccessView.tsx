@@ -85,7 +85,7 @@ export default function SuccessView({ onBack }: Props) {
             <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px", marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Step 1 of 2 — Activation code</div>
               <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                Check your email for the code. Usually arrives within 24 hours.
+                Check your email for the code — it's usually delivered within a few minutes of purchase.
               </p>
               <div style={{ display: "flex", gap: 8 }}>
                 <input

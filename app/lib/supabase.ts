@@ -10,18 +10,31 @@ export async function validateProCode(
 ): Promise<"ok" | "invalid" | "already_used" | "error"> {
   try {
     const trimmed = code.trim().toUpperCase();
+
+    // 1. Read current state of the code
     const { data, error } = await supabase
       .from("pro_codes")
       .select("code, used")
       .eq("code", trimmed)
       .single();
+
     if (error || !data) return "invalid";
     if (data.used) return "already_used";
-    const { error: updateError } = await supabase
+
+    // 2. Atomic conditional update: only marks as used if still unused.
+    //    The .eq("used", false) guard prevents a race where two concurrent
+    //    requests both read used=false and both try to consume the same code.
+    const { error: updateError, count } = await supabase
       .from("pro_codes")
       .update({ used: true, used_at: new Date().toISOString() })
-      .eq("code", trimmed);
+      .eq("code", trimmed)
+      .eq("used", false)  // guard: only update if still unused
+      .select();          // needed so count is populated
+
     if (updateError) return "error";
+    // count === 0 means another request won the race — code now used
+    if (count === 0) return "already_used";
+
     return "ok";
   } catch { return "error"; }
 }

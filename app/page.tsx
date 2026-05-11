@@ -11,7 +11,7 @@ import TeleprompterView from "./components/TeleprompterView";
 import PricingView from "./components/PricingView";
 import SuccessView from "./components/SuccessView";
 import AccountView from "./components/AccountView";
-import AuthModal from "./components/AuthModal";
+import WelcomeModal from "./components/WelcomeModal";
 import CookieBanner from "./components/CookieBanner";
 import { IconPlus } from "./components/Icons";
 
@@ -265,7 +265,7 @@ export default function Home() {
   const [query, setQuery]               = useState("");
   const [sort, setSort]                 = useState<SortOrder>("recent");
   const [showHowTo, setShowHowTo]       = useState(false);
-  const [showAuth, setShowAuth]         = useState(false);
+  const [showWelcome, setShowWelcome]   = useState(false);
   const [isPro, setIsPro]               = useState<boolean>(() => {
     try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
   });
@@ -280,6 +280,26 @@ export default function Home() {
     }
   }, []);
 
+  // Listen for async Pro status updates from useAuth (magic link callback).
+  // useAuth writes to localStorage BEFORE dispatching this event, so reading
+  // the flag here is always safe and up-to-date.
+  useEffect(() => {
+    const handler = () => {
+      const stored = localStorage.getItem("reelprompt:pro") === "true";
+      if (stored) {
+        setIsPro(true);
+        // Show WelcomeModal only on first-ever sign-in
+        const welcomed = localStorage.getItem("reelprompt:welcomed");
+        if (!welcomed) {
+          setShowWelcome(true);
+          localStorage.setItem("reelprompt:welcomed", "true");
+        }
+      }
+    };
+    window.addEventListener("reelprompt:pro-updated", handler);
+    return () => window.removeEventListener("reelprompt:pro-updated", handler);
+  }, []);
+
   const handleCreate = () => { const s = create(); setActiveScript(s); setView("editor"); };
   const handleEdit   = (s: Script) => { setActiveScript(s); setView("editor"); };
   const handleSave   = (s: Script) => { const u = save(s); setActiveScript(u); return u; };
@@ -288,17 +308,9 @@ export default function Home() {
   const handleSettingsChange = (s: TeleprompterSettings) => { setSettings(s); saveSettings(s); };
   const cycleSort = () => setSort((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
 
-  const handleActivate = (key: string) => {
-    localStorage.setItem("reelprompt:pro", "true");
-    localStorage.setItem("reelprompt:pro-key", key);
-    setIsPro(true);
-    setShowAuth(true); // prompt sign in after activation
-    setView("list");
-  };
-
   const handleProButtonClick = () => {
     if (isPro && user) { setView("account"); return; }
-    if (isPro && !user) { setShowAuth(true); return; }
+    if (isPro && !user) { setView("account"); return; } // signed out Pro: go to account to re-sign-in
     setView("pricing");
   };
 
@@ -376,7 +388,7 @@ export default function Home() {
         <Footer onPricing={() => setView("pricing")} />
         <CookieBanner />
         {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
-        {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+        {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
       </div>
     );
   }
@@ -428,7 +440,7 @@ export default function Home() {
       <Footer onPricing={() => setView("pricing")} />
       <CookieBanner />
       {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
+      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
     </div>
   );
 }

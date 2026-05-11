@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { checkProUser } from "../lib/supabase";
 
 const KO_FI_DONATE_URL = "https://ko-fi.com/s/111eb93270";
 
@@ -33,6 +34,13 @@ export default function AccountView({ onBack, onSignOut }: Props) {
     if (isOffline) { setSyncError("You're offline — connect to the internet to sign in."); return; }
     setSyncState("sending");
     setSyncError("");
+    // Verify this email actually has Pro before sending the magic link.
+    const isPro = await checkProUser(trimmed);
+    if (!isPro) {
+      setSyncError("This email isn't registered as Pro. Check your activation email or contact support.");
+      setSyncState("idle");
+      return;
+    }
     const { error } = await signIn(trimmed);
     if (error) { setSyncError("Something went wrong — try again."); setSyncState("error"); return; }
     setSyncState("sent");
