@@ -12,9 +12,9 @@ type View = "list" | "editor" | "teleprompter";
 
 export default function Home() {
   const { scripts, create, save, remove, duplicate } = useScripts();
-  const [view, setView] = useState<View>("list");
+  const [view, setView]               = useState<View>("list");
   const [activeScript, setActiveScript] = useState<Script | null>(null);
-  const [settings, setSettings] = useState<TeleprompterSettings | null>(null);
+  const [settings, setSettings]       = useState<TeleprompterSettings | null>(null);
 
   useEffect(() => { setSettings(getSettings()); }, []);
 
@@ -62,9 +62,11 @@ export default function Home() {
     return (
       <ScriptEditor
         script={activeScript}
+        settings={settings}
         onSave={handleSave}
         onBack={() => setView("list")}
         onStartTeleprompter={handleStartTeleprompter}
+        onSettingsChange={handleSettingsChange}
       />
     );
   }
@@ -76,7 +78,7 @@ export default function Home() {
           <div>
             <div style={{
               fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)",
-              letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6
+              letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6,
             }}>ReelPrompt</div>
             <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
               Your<br />Scripts
@@ -95,7 +97,7 @@ export default function Home() {
             </div>
             <div>
               <div style={{ fontSize: 22, fontWeight: 800 }}>
-                {scripts.reduce((acc, s) => acc + (s.body.trim() ? s.body.trim().split(/\s+/).length : 0), 0).toLocaleString()}
+                {scripts.reduce((acc, s) => acc + (s.body.replace(/<[^>]*>/g, " ").trim() ? s.body.replace(/<[^>]*>/g, " ").trim().split(/\s+/).length : 0), 0).toLocaleString()}
               </div>
               <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Words</div>
             </div>
