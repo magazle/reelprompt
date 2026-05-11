@@ -141,6 +141,8 @@ textarea.input { resize: none; line-height: 1.6; min-height: 200px; }
 .rich-editor i, .rich-editor em     { font-style: italic; }
 .rich-editor ul { padding-left: 1.4em; list-style: disc; margin: 0.4em 0; }
 .rich-editor li { margin: 0.2em 0; }
+.rich-editor h1 { font-size: 1.5em; font-weight: 800; line-height: 1.2; margin: 0.6em 0 0.2em; letter-spacing: -0.02em; }
+.rich-editor h2 { font-size: 1.2em; font-weight: 700; line-height: 1.3; margin: 0.5em 0 0.2em; letter-spacing: -0.01em; }
 
 /* ── Script card HTML preview ── */
 .script-card-preview {
