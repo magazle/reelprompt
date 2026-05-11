@@ -79,18 +79,25 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
     return () => window.removeEventListener("keydown", handler);
   }, [showSettings, scroll, onBack, resetControlsTimer]);
 
+  // Holds the <video> DOM element so the async startCamera callback can reach it.
+  const videoElRef = useRef<HTMLVideoElement | null>(null);
+
   // ── Start camera on mount ──
   useEffect(() => {
-    camera.startCamera();
+    camera.startCamera().then((stream) => {
+      // Stream arrived after the video element was already mounted — attach now.
+      if (stream && videoElRef.current) videoElRef.current.srcObject = stream;
+    });
     wake.acquire();
     return () => { camera.stopCamera(); scroll.stop(); wake.release(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Ref callback: attaches the camera stream whenever the video element mounts.
-  // Covers both the case where the element mounts before the stream is ready
-  // (handled here) and after (camera.startCamera sets srcObject on the stream).
+  // Ref callback: fires when the <video> element mounts.
+  // If the stream is already ready (fast devices), attach immediately.
+  // Otherwise videoElRef is saved and the .then() above attaches once ready.
   const attachVideo = useCallback((el: HTMLVideoElement | null) => {
+    videoElRef.current = el;
     if (el && camera.streamRef.current) el.srcObject = camera.streamRef.current;
   }, [camera.streamRef]);
 
