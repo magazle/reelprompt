@@ -188,7 +188,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
           <div style={{
             height: "100%",
             width: `${scrollProgress * 100}%`,
-            background: isRecording ? "var(--accent)" : "rgba(255,255,255,0.5)",
+            background: isRecording ? "#ff3b30" : "rgba(255,255,255,0.5)",
             transition: "width 0.3s linear",
           }} />
         </div>
@@ -376,7 +376,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
               {/* Recording timer */}
               {isRecording && (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div className="rec-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)" }} />
+                  <div className="rec-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff3b30" }} />
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "white", letterSpacing: "0.05em" }}>
                     {formatTime(camera.recordingTime)}
                   </span>
@@ -447,7 +447,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
                       cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                     }}
                   >
-                    <div style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--accent)" }} />
+                    <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#ff3b30" }} />
                   </button>
                 )}
 
@@ -473,7 +473,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
                         cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
                       }}
                     >
-                      <div style={{ width: 28, height: 28, borderRadius: 6, background: "var(--accent)" }} />
+                      <div style={{ width: 28, height: 28, borderRadius: 6, background: "#ff3b30" }} />
                     </button>
 
                     <button
