@@ -1,17 +1,35 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Full bleed background -->
+  <!-- Full-bleed background -->
   <rect width="512" height="512" fill="#16a34a"/>
 
-  <!-- Content scaled down with padding (safe zone aware) -->
-  <!-- Text lines centered, occupying ~60% of canvas width -->
-  <rect x="116" y="130" width="196" height="26" rx="13" fill="#f0fdf4"/>
-  <rect x="116" y="172" width="252" height="26" rx="13" fill="rgba(240,253,244,0.76)"/>
-  <rect x="116" y="214" width="218" height="26" rx="13" fill="rgba(240,253,244,0.54)"/>
-  <rect x="116" y="256" width="236" height="26" rx="13" fill="rgba(240,253,244,0.34)"/>
-  <rect x="116" y="298" width="172" height="26" rx="13" fill="rgba(240,253,244,0.16)"/>
+  <!-- R letterform — centred, safe zone aware -->
+  <!-- Stem: x=128..180, y=110..400 -->
+  <!-- Bowl top: x=128..360, y=110..165 -->
+  <!-- Bowl mid: x=128..340, y=240..295 -->
+  <!-- Bowl right arc approximated with a rounded rect -->
+  <!-- Leg: diagonal from ~(310,295) to (390,400) -->
+  <path d="
+    M 128 110
+    L 128 400
+    L 182 400
+    L 182 300
+    L 258 300
+    L 338 400
+    L 400 400
+    L 312 292
+    Q 372 272 372 198
+    Q 372 110 256 110
+    Z
+    M 182 158
+    L 248 158
+    Q 322 158 322 198
+    Q 322 252 248 252
+    L 182 252
+    Z
+  " fill="#f0fdf4"/>
 
-  <!-- Record button — kept inside safe zone, bottom-right quadrant -->
-  <circle cx="368" cy="352" r="66" fill="rgba(240,253,244,0.13)"/>
-  <circle cx="368" cy="352" r="48" fill="#f0fdf4"/>
-  <circle cx="368" cy="352" r="29" fill="#16a34a"/>
+  <!-- Rec dot — bottom right, inside safe zone -->
+  <circle cx="390" cy="385" r="56" fill="rgba(240,253,244,0.15)"/>
+  <circle cx="390" cy="385" r="40" fill="#f0fdf4"/>
+  <circle cx="390" cy="385" r="24" fill="#16a34a"/>
 </svg>
