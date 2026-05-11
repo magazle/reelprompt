@@ -480,7 +480,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
         {/* Settings panel */}
         {showSettings && (
           <div onClick={(e) => e.stopPropagation()}>
-            <SettingsPanel settings={settings} onChange={handleSettingsChange} onClose={() => setShowSettings(false)} />
+            <SettingsPanel settings={settings} onChange={handleSettingsChange} onClose={() => setShowSettings(false)} script={script} />
           </div>
         )}
       </div>
