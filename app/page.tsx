@@ -11,7 +11,7 @@ import TeleprompterView from "./components/TeleprompterView";
 import PricingView from "./components/PricingView";
 import SuccessView from "./components/SuccessView";
 import AccountView from "./components/AccountView";
-import WelcomeModal from "./components/WelcomeModal";
+import AuthModal from "./components/AuthModal";
 import CookieBanner from "./components/CookieBanner";
 import { IconPlus } from "./components/Icons";
 
@@ -108,8 +108,7 @@ function InstallBanner() {
 function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <div style={{ position: "relative", marginBottom: 16 }}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-        style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-3)", pointerEvents: "none" }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-3)", pointerEvents: "none" }}>
         <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
       <input type="search" placeholder="Search scripts…" value={value} onChange={(e) => onChange(e.target.value)}
@@ -160,6 +159,7 @@ const HOW_TO_STEPS = {
 function HowToModal({ onClose }: { onClose: () => void }) {
   const [lang, setLang] = useState<"en" | "it">("en");
   const steps = HOW_TO_STEPS[lang];
+
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,31,20,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
       <div style={{ background: "var(--surface)", borderRadius: "20px 20px 0 0", borderTop: "1px solid var(--border)", width: "100%", maxWidth: 560, maxHeight: "88dvh", display: "flex", flexDirection: "column", animation: "slide-up 0.3s ease forwards" }} onClick={(e) => e.stopPropagation()}>
@@ -203,45 +203,53 @@ function HowToModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-// ── Footer ────────────────────────────────────────────────────────────────
+// ── Footer ─────────────────────────────────────────────────────────────────
 
-function Footer() {
+function Footer({ onPricing }: { onPricing: () => void }) {
+  const ls = { fontSize: 11, color: "var(--text-3)" as const, fontFamily: "var(--font-mono)", textDecoration: "none" as const, transition: "color 0.15s", cursor: "pointer" as const, background: "none" as const, border: "none" as const, padding: 0 };
+  const h = (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.color = "var(--text)");
+  const u = (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.color = "var(--text-3)");
   return (
     <div style={{ padding: "16px 24px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0 }}>
       <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>© 2026 Leo Magazzu</span>
       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-        <a href="/help" style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textDecoration: "none", transition: "color 0.15s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}>
-          Help
-        </a>
-        <a href="/privacy" style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textDecoration: "none", transition: "color 0.15s" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}>
-          Privacy
-        </a>
+        <a href="/help" style={ls} onMouseEnter={h} onMouseLeave={u}>Help</a>
+        <button onClick={onPricing} style={ls} onMouseEnter={h} onMouseLeave={u}>Pricing</button>
+        <a href="/privacy" style={ls} onMouseEnter={h} onMouseLeave={u}>Privacy</a>
       </div>
     </div>
   );
 }
 
-// ── Header Pro button ─────────────────────────────────────────────────────
+// ── Header button components ──────────────────────────────────────────────
 
-function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLoggedIn: boolean; onClick: () => void }) {
-  if (!isPro) {
+function ProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLoggedIn: boolean; onClick: () => void }) {
+  // If Pro and logged in → show account avatar
+  if (isPro && isLoggedIn) {
     return (
-      <button onClick={onClick} title="Upgrade to Pro"
-        style={{ height: 38, padding: "0 14px", borderRadius: 12, background: "var(--accent)", color: "white", border: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "background 0.15s" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-2)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
-        ✦ Go Pro
+      <button onClick={onClick} title="Your Pro account"
+        style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--accent)", color: "white", border: "none", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        ✦
       </button>
     );
   }
+  // If Pro but not logged in → show "Sign in" to sync
+  if (isPro && !isLoggedIn) {
+    return (
+      <button onClick={onClick} title="Sign in to sync"
+        style={{ height: 38, padding: "0 14px", borderRadius: 12, background: "var(--bg-2)", color: "var(--accent)", border: "1px solid var(--border-2)", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+        ✦ Sync
+      </button>
+    );
+  }
+  // Free user → upgrade CTA
   return (
-    <button onClick={onClick} title={isLoggedIn ? "Your Pro account" : "Set up sync"}
-      style={{ width: 38, height: 38, borderRadius: "50%", background: isLoggedIn ? "var(--accent)" : "var(--bg-2)", color: isLoggedIn ? "white" : "var(--accent)", border: isLoggedIn ? "none" : "1.5px solid var(--accent)", cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}>
-      ✦
+    <button onClick={onClick} title="Upgrade to Pro"
+      style={{ height: 38, padding: "0 14px", borderRadius: 12, background: "var(--accent)", color: "white", border: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "background 0.15s" }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-2)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
+    >
+      ✦ Go Pro
     </button>
   );
 }
@@ -257,34 +265,10 @@ export default function Home() {
   const [query, setQuery]               = useState("");
   const [sort, setSort]                 = useState<SortOrder>("recent");
   const [showHowTo, setShowHowTo]       = useState(false);
-  const [showWelcome, setShowWelcome]   = useState(false);
-
-  // isPro is true if:
-  // 1. localStorage has reelprompt:pro = "true" (set after magic link confirmed), OR
-  // 2. user is logged in (Supabase session active)
-  // This ensures offline Pro users still get Pro experience
-  const [isPro, setIsPro] = useState<boolean>(() => {
+  const [showAuth, setShowAuth]         = useState(false);
+  const [isPro, setIsPro]               = useState<boolean>(() => {
     try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
   });
-
-  // Sync isPro with auth state
-  useEffect(() => {
-    if (user) {
-      const storedPro = localStorage.getItem("reelprompt:pro") === "true";
-      if (storedPro) setIsPro(true);
-    }
-  }, [user]);
-
-  // Show WelcomeModal once after first Pro sign-in
-  useEffect(() => {
-    if (!user) return;
-    const welcomed = localStorage.getItem("reelprompt:welcomed");
-    const pro = localStorage.getItem("reelprompt:pro") === "true";
-    if (pro && !welcomed) {
-      setShowWelcome(true);
-      localStorage.setItem("reelprompt:welcomed", "1");
-    }
-  }, [user]);
 
   // Detect ?pro=success redirect from Ko-fi
   useEffect(() => {
@@ -304,35 +288,38 @@ export default function Home() {
   const handleSettingsChange = (s: TeleprompterSettings) => { setSettings(s); saveSettings(s); };
   const cycleSort = () => setSort((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
 
-  // Called by SuccessView — isPro will be set by useAuth after magic link
-  // Nothing to do here except navigate back
-  const handleSuccessBack = () => setView("list");
-
-  // Sign out: useAuth handles localStorage cleanup via SIGNED_OUT event
-  const handleSignOut = () => {
-    setIsPro(false);
+  const handleActivate = (key: string) => {
+    localStorage.setItem("reelprompt:pro", "true");
+    localStorage.setItem("reelprompt:pro-key", key);
+    setIsPro(true);
+    setShowAuth(true); // prompt sign in after activation
     setView("list");
   };
 
   const handleProButtonClick = () => {
-    if (isPro) { setView("account"); return; }
+    if (isPro && user) { setView("account"); return; }
+    if (isPro && !user) { setShowAuth(true); return; }
     setView("pricing");
   };
 
   // ── Views ─────────────────────────────────────────────────────────────────
 
   if (view === "account") {
-    return <AccountView onBack={() => setView("list")} onSignOut={handleSignOut} />;
+    return <AccountView onBack={() => setView("list")} onSignOut={() => setView("list")} />;
   }
+
   if (view === "success") {
-    return <SuccessView onBack={handleSuccessBack} />;
+    return <SuccessView onBack={() => setView("list")} />;
   }
+
   if (view === "pricing") {
-    return <PricingView isPro={isPro} onBack={() => setView("list")} onActivate={() => setView("success")} />;
+    return <PricingView isPro={isPro} onBack={() => setView("list")} />;
   }
+
   if (view === "teleprompter" && activeScript) {
     return <TeleprompterView script={activeScript} settings={settings} onSettingsChange={handleSettingsChange} onBack={() => setView("editor")} />;
   }
+
   if (view === "editor" && activeScript) {
     return <ScriptEditor script={activeScript} settings={settings} onSave={handleSave} onBack={() => setView("list")} onStartTeleprompter={handleStartTeleprompter} onSettingsChange={handleSettingsChange} />;
   }
@@ -354,13 +341,13 @@ export default function Home() {
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
 
-  const headerRight = (
+  const headerButtons = (
     <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
       <button onClick={() => setShowHowTo(true)} title="How to use"
         style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
         ?
       </button>
-      {!authLoading && <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
+      {!authLoading && <ProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
     </div>
   );
 
@@ -373,7 +360,7 @@ export default function Home() {
           <div style={{ padding: "0 24px 40px", paddingTop: topPad }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>ReelPrompt</div>
-              {headerRight}
+              {headerButtons}
             </div>
             <InstallBanner />
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14, paddingTop: 32 }}>
@@ -386,10 +373,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-        <Footer />
+        <Footer onPricing={() => setView("pricing")} />
         <CookieBanner />
         {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
-        {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       </div>
     );
   }
@@ -413,7 +400,7 @@ export default function Home() {
                 style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
                 ?
               </button>
-              {!authLoading && <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
+              {!authLoading && <ProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
               <button className="btn btn-primary" style={{ borderRadius: 14 }} onClick={handleCreate}><IconPlus /> New</button>
             </div>
           </div>
@@ -438,10 +425,10 @@ export default function Home() {
           )}
         </div>
       </div>
-      <Footer />
+      <Footer onPricing={() => setView("pricing")} />
       <CookieBanner />
       {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
-      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </div>
   );
 }
