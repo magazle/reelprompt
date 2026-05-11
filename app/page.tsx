@@ -258,7 +258,7 @@ function ProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLoggedIn:
 
 export default function Home() {
   const { scripts, create, save, remove, duplicate } = useScripts();
-  const { user, loading: authLoading } = useAuth();
+  const { user, isPro, loading: authLoading } = useAuth();
   const [view, setView]                 = useState<View>("list");
   const [activeScript, setActiveScript] = useState<Script | null>(null);
   const [settings, setSettings]         = useState<TeleprompterSettings>(getSettings);
@@ -266,9 +266,6 @@ export default function Home() {
   const [sort, setSort]                 = useState<SortOrder>("recent");
   const [showHowTo, setShowHowTo]       = useState(false);
   const [showWelcome, setShowWelcome]   = useState(false);
-  const [isPro, setIsPro]               = useState<boolean>(() => {
-    try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
-  });
 
   // Detect ?pro=success redirect from Ko-fi
   useEffect(() => {
@@ -280,34 +277,15 @@ export default function Home() {
     }
   }, []);
 
-  // Listen for async Pro status updates from useAuth (magic link callback).
-  // useAuth writes to localStorage BEFORE dispatching this event.
+  // Show WelcomeModal once when Pro is first activated
   useEffect(() => {
-    const handleProUpdated = () => {
-      const stored = localStorage.getItem("reelprompt:pro") === "true";
-      if (stored) {
-        setIsPro(true);
-        // Show WelcomeModal only on first-ever sign-in
-        const welcomed = localStorage.getItem("reelprompt:welcomed");
-        if (!welcomed) {
-          setShowWelcome(true);
-          localStorage.setItem("reelprompt:welcomed", "true");
-        }
-      }
-    };
-    // When user signs out, useAuth clears localStorage and dispatches this event.
-    // We must reset isPro in React state too, otherwise the UI stays in Pro mode.
-    const handleSignedOut = () => {
-      setIsPro(false);
-      setShowWelcome(false);
-    };
-    window.addEventListener("reelprompt:pro-updated", handleProUpdated);
-    window.addEventListener("reelprompt:signed-out", handleSignedOut);
-    return () => {
-      window.removeEventListener("reelprompt:pro-updated", handleProUpdated);
-      window.removeEventListener("reelprompt:signed-out", handleSignedOut);
-    };
-  }, []);
+    if (!isPro) return;
+    const welcomed = localStorage.getItem("reelprompt:welcomed");
+    if (!welcomed) {
+      setShowWelcome(true);
+      localStorage.setItem("reelprompt:welcomed", "true");
+    }
+  }, [isPro]);
 
   const handleCreate = () => { const s = create(); setActiveScript(s); setView("editor"); };
   const handleEdit   = (s: Script) => { setActiveScript(s); setView("editor"); };
@@ -319,7 +297,7 @@ export default function Home() {
 
   const handleProButtonClick = () => {
     if (isPro && user) { setView("account"); return; }
-    if (isPro && !user) { setView("account"); return; } // signed out Pro: go to account to re-sign-in
+    if (isPro && !user) { setView("account"); return; }
     setView("pricing");
   };
 
