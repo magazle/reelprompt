@@ -6,6 +6,12 @@ import type { User } from "@supabase/supabase-js";
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  // Source of truth for Pro status — writable only inside this hook.
+  // Initialized from localStorage so returning users with cached flag
+  // get Pro instantly on mount, before any network call completes.
+  const [isPro, setIsPro] = useState<boolean>(() => {
+    try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
+  });
 
   useEffect(() => {
     // Fallback: resolve loading within 3s if Supabase is slow
@@ -29,11 +35,13 @@ export function useAuth() {
             localStorage.setItem("reelprompt:pro", "true");
             localStorage.setItem("reelprompt:pro-key", pendingCode);
             localStorage.removeItem("reelprompt:pending-code");
+            setIsPro(true);
           } else {
             // Returning user: check DB — works because RLS is USING (true)
             const isProUser = await checkProUser(u.email);
             if (isProUser) {
               localStorage.setItem("reelprompt:pro", "true");
+              setIsPro(true);
             }
           }
         }
@@ -42,6 +50,7 @@ export function useAuth() {
           localStorage.removeItem("reelprompt:pro");
           localStorage.removeItem("reelprompt:pro-key");
           localStorage.removeItem("reelprompt:welcomed");
+          setIsPro(false);
         }
       }
     );
@@ -85,5 +94,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, loading, signIn, signOut };
+  return { user, loading, isPro, signIn, signOut };
 }
