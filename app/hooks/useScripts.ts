@@ -113,35 +113,36 @@ export function useScripts(userId?: string, sessionToken?: string) {
     setScripts(local);
   }, []);
 
+  const runSync = useCallback(async (uid: string, token: string) => {
+    setSyncing(true);
+    try {
+      const remote = await fetchRemoteScripts(token);
+      const local = getScripts();
+      const merged = mergeScripts(local, remote);
+      for (const s of merged) saveScript(s);
+      setScripts(merged);
+      const remoteIds = new Set(remote.map((s) => s.id));
+      const localOnly = merged.filter((s) => !remoteIds.has(s.id));
+      await Promise.all(localOnly.map((s) => upsertRemoteScript(s, uid, token)));
+    } catch {
+      // Sync failure is silent — local data still works
+    } finally {
+      setSyncing(false);
+    }
+  }, []);
+
   // When user logs in (userId/token appear): pull remote, merge, persist
   useEffect(() => {
     if (!userId || !sessionToken) return;
     let cancelled = false;
-
-    (async () => {
-      setSyncing(true);
-      console.log("[useScripts] sync start — userId:", userId, "token present:", !!sessionToken);
-      try {
-        const remote = await fetchRemoteScripts(sessionToken);
-        if (cancelled) return;
-        const local = getScripts();
-        const merged = mergeScripts(local, remote);
-        // Persist merged list locally
-        for (const s of merged) saveScript(s);
-        setScripts(merged);
-        // Push any local-only scripts up to remote
-        const remoteIds = new Set(remote.map((s) => s.id));
-        const localOnly = merged.filter((s) => !remoteIds.has(s.id));
-        await Promise.all(localOnly.map((s) => upsertRemoteScript(s, userId, sessionToken)));
-      } catch {
-        // Sync failure is silent — local data still works
-      } finally {
-        if (!cancelled) setSyncing(false);
-      }
-    })();
-
+    runSync(userId, sessionToken).then(() => { if (cancelled) return; });
     return () => { cancelled = true; };
-  }, [userId, sessionToken]);
+  }, [userId, sessionToken, runSync]);
+
+  const syncNow = useCallback(() => {
+    const { userId, sessionToken } = authRef.current;
+    if (userId && sessionToken) runSync(userId, sessionToken);
+  }, [runSync]);
 
   const refresh = useCallback(() => {
     setScripts(getScripts());
@@ -182,5 +183,5 @@ export function useScripts(userId?: string, sessionToken?: string) {
     return d;
   }, []);
 
-  return { scripts, syncing, create, save, remove, duplicate, refresh };
+  return { scripts, syncing, syncNow, create, save, remove, duplicate, refresh };
 }
