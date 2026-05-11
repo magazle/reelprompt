@@ -281,10 +281,9 @@ export default function Home() {
   }, []);
 
   // Listen for async Pro status updates from useAuth (magic link callback).
-  // useAuth writes to localStorage BEFORE dispatching this event, so reading
-  // the flag here is always safe and up-to-date.
+  // useAuth writes to localStorage BEFORE dispatching this event.
   useEffect(() => {
-    const handler = () => {
+    const handleProUpdated = () => {
       const stored = localStorage.getItem("reelprompt:pro") === "true";
       if (stored) {
         setIsPro(true);
@@ -296,8 +295,18 @@ export default function Home() {
         }
       }
     };
-    window.addEventListener("reelprompt:pro-updated", handler);
-    return () => window.removeEventListener("reelprompt:pro-updated", handler);
+    // When user signs out, useAuth clears localStorage and dispatches this event.
+    // We must reset isPro in React state too, otherwise the UI stays in Pro mode.
+    const handleSignedOut = () => {
+      setIsPro(false);
+      setShowWelcome(false);
+    };
+    window.addEventListener("reelprompt:pro-updated", handleProUpdated);
+    window.addEventListener("reelprompt:signed-out", handleSignedOut);
+    return () => {
+      window.removeEventListener("reelprompt:pro-updated", handleProUpdated);
+      window.removeEventListener("reelprompt:signed-out", handleSignedOut);
+    };
   }, []);
 
   const handleCreate = () => { const s = create(); setActiveScript(s); setView("editor"); };
