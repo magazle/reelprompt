@@ -3,11 +3,24 @@ import { useState, useRef, useCallback, useEffect } from "react";
 
 export type RecordingState = "idle" | "recording" | "paused" | "done";
 
+function pickMimeType(): string {
+  const candidates = [
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4;codecs=avc1,mp4a.40.2",
+    "video/mp4",
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+  ];
+  return candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "video/webm";
+}
+
 export function useCamera() {
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const mimeTypeRef = useRef<string>("");
 
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
@@ -22,8 +35,14 @@ export function useCamera() {
           facingMode: "user",
           width: { ideal: 1080 },
           height: { ideal: 1920 },
+          aspectRatio: { ideal: 9 / 16 },
+          frameRate: { ideal: 60, min: 30 },
         },
-        audio: true,
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: { ideal: 48000 },
+        },
       });
       streamRef.current = stream;
       if (videoRef.current) {
@@ -48,28 +67,25 @@ export function useCamera() {
     }
   }, []);
 
-  const attachVideo = useCallback(
-    (el: HTMLVideoElement | null) => {
-      videoRef.current = el;
-      if (el && streamRef.current) {
-        el.srcObject = streamRef.current;
-      }
-    },
-    []
-  );
+  const attachVideo = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (el && streamRef.current) {
+      el.srcObject = streamRef.current;
+    }
+  }, []);
 
   const startRecording = useCallback(() => {
     if (!streamRef.current) return;
     chunksRef.current = [];
 
-    // Record ONLY the raw stream — no canvas, no overlay
-    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
-      ? "video/webm;codecs=vp9,opus"
-      : MediaRecorder.isTypeSupported("video/webm")
-      ? "video/webm"
-      : "video/mp4";
+    const mimeType = pickMimeType();
+    mimeTypeRef.current = mimeType;
 
-    const recorder = new MediaRecorder(streamRef.current, { mimeType });
+    const recorder = new MediaRecorder(streamRef.current, {
+      mimeType,
+      videoBitsPerSecond: 8_000_000,
+      audioBitsPerSecond: 128_000,
+    });
     mediaRecorderRef.current = recorder;
 
     recorder.ondataavailable = (e) => {
@@ -122,13 +138,14 @@ export function useCamera() {
   const downloadRecording = useCallback(
     (filename = "reelprompt-recording") => {
       if (!lastBlob) return;
-      const ext = lastBlob.type.includes("mp4") ? "mp4" : "webm";
+      const isMp4 = mimeTypeRef.current.includes("mp4");
+      const ext = isMp4 ? "mp4" : "webm";
       const url = URL.createObjectURL(lastBlob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${filename}.${ext}`;
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
     },
     [lastBlob]
   );
@@ -152,6 +169,7 @@ export function useCamera() {
     recordingState,
     recordingTime,
     lastBlob,
+    mimeType: mimeTypeRef.current,
     streamRef,
     attachVideo,
     startCamera,
