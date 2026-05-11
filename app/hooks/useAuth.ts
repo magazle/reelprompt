@@ -8,7 +8,12 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Always resolve loading within 3s max — guards against Supabase network delays
+    // that would keep authLoading=true and hide the ProButton indefinitely.
+    const timeout = setTimeout(() => setLoading(false), 3000);
+
     supabase.auth.getSession().then(({ data }) => {
+      clearTimeout(timeout);
       setUser(data.session?.user ?? null);
       setLoading(false);
     });
@@ -49,7 +54,10 @@ export function useAuth() {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signIn = (email: string) =>
