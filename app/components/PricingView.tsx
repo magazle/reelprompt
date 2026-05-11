@@ -47,35 +47,19 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
     const trimmed = key.trim();
     if (!trimmed) { setKeyError("Enter your activation code."); return; }
     if (trimmed.length < 6) { setKeyError("Code looks too short — check your email."); return; }
-
     setActivating(true);
     setKeyError("");
-
     const result = await validateProCode(trimmed);
-
     if (result === "ok") {
       onActivate(trimmed);
     } else {
       setKeyError(ERROR_MESSAGES[result]);
     }
-
     setActivating(false);
   };
 
-  const shell: React.CSSProperties = {
-    height: "100dvh",
-    background: "var(--bg)",
-    display: "flex",
-    flexDirection: "column",
-    overflow: "hidden",
-  };
-
-  const scroller: React.CSSProperties = {
-    flex: 1,
-    overflowY: "auto",
-    WebkitOverflowScrolling: "touch",
-  };
-
+  const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
+  const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
 
   return (
@@ -85,41 +69,20 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
 
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-            <button
-              onClick={onBack}
-              style={{
-                width: 38, height: 38, borderRadius: 12,
-                background: "var(--surface)", border: "1px solid var(--border-2)",
-                color: "var(--text-2)", cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}
-              title="Back"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
+            <button onClick={onBack}
+              style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
+              title="Back">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              ReelPrompt
-            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>ReelPrompt</div>
           </div>
 
           {/* Hero */}
           <div style={{ marginBottom: 32 }}>
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 8, padding: "4px 10px", marginBottom: 12,
-            }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "4px 10px", marginBottom: 12 }}>
               <span style={{ fontSize: 12, color: "var(--accent)", fontFamily: "var(--font-mono)", fontWeight: 500 }}>✦ Pro</span>
             </div>
-            <h1 style={{
-              fontFamily: "var(--font-display)", fontWeight: 800,
-              fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.02em",
-              marginBottom: 10,
-            }}>
+            <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, lineHeight: 1.15, letterSpacing: "-0.02em", marginBottom: 10 }}>
               Your scripts,<br />everywhere you are.
             </h1>
             <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6 }}>
@@ -130,11 +93,8 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
           {/* Cards */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 28 }}>
 
-            {/* Free card */}
-            <div style={{
-              background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 16, padding: "20px",
-            }}>
+            {/* Free */}
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>Free</div>
@@ -144,151 +104,77 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                 {FEATURES_FREE.map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "var(--text-2)" }}>
-                    {CHECK} {f}
-                  </div>
+                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "var(--text-2)" }}>{CHECK} {f}</div>
                 ))}
               </div>
             </div>
 
-            {/* Pro card */}
-            <div style={{
-              background: "var(--surface)", border: "2px solid var(--accent)",
-              borderRadius: 16, padding: "20px",
-              boxShadow: "0 0 32px var(--accent-glow)",
-            }}>
-              {/* Title row */}
+            {/* Pro */}
+            <div style={{ background: "var(--surface)", border: "2px solid var(--accent)", borderRadius: 16, padding: "20px", boxShadow: "0 0 32px var(--accent-glow)" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>✦ Pro</div>
                   <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>one payment, no expiry</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
-                  <div style={{
-                    background: "var(--accent)", color: "white",
-                    fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)",
-                    padding: "3px 8px", borderRadius: 6, letterSpacing: "0.05em",
-                  }}>
-                    LIFETIME
-                  </div>
+                  <div style={{ background: "var(--accent)", color: "white", fontSize: 10, fontWeight: 700, fontFamily: "var(--font-mono)", padding: "3px 8px", borderRadius: 6, letterSpacing: "0.05em" }}>LIFETIME</div>
                   <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--accent)" }}>€3+</div>
                 </div>
               </div>
-
-              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                Pay what you feel is fair — €3 minimum.
-              </p>
-
+              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Pay what you feel is fair — €3 minimum.</p>
               <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 20 }}>
                 {FEATURES_PRO.map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "var(--text-2)" }}>
-                    {CHECK} {f}
-                  </div>
+                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "var(--text-2)" }}>{CHECK} {f}</div>
                 ))}
               </div>
-
-              <a
-                href={KO_FI_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  width: "100%", padding: "14px 0", borderRadius: 12,
-                  background: "var(--accent)", color: "white",
-                  fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15,
-                  textDecoration: "none", transition: "background 0.15s",
-                }}
+              <a href={KO_FI_URL} target="_blank" rel="noopener noreferrer"
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: "14px 0", borderRadius: 12, background: "var(--accent)", color: "white", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15, textDecoration: "none", transition: "background 0.15s" }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-2)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}
-              >
+                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
                 Support ReelPrompt ✦
               </a>
             </div>
 
-            {/* Support card — only for Pro users */}
+            {/* Ko-fi donate — only for Pro users */}
             {isPro && (
-              <div style={{
-                background: "var(--surface)", border: "1px solid var(--border)",
-                borderRadius: 16, padding: "20px",
-              }}>
+              <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>☕ Buy me a coffee</div>
-                <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                  You already have Pro. If you love ReelPrompt, a coffee keeps it going — no pressure, no minimum.
-                </p>
-                <a
-                  href={KO_FI_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    width: "100%", padding: "12px 0", borderRadius: 12,
-                    background: "var(--bg-2)", color: "var(--text-2)",
-                    fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14,
-                    textDecoration: "none", border: "1px solid var(--border-2)",
-                    transition: "background 0.15s",
-                  }}
+                <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>You already have Pro. If you love ReelPrompt, a coffee keeps it going — no pressure, no minimum.</p>
+                <a href="https://ko-fi.com/s/111eb93270" target="_blank" rel="noopener noreferrer"
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "12px 0", borderRadius: 12, background: "var(--bg-2)", color: "var(--text-2)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, textDecoration: "none", border: "1px solid var(--border-2)", transition: "background 0.15s" }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-3)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-2)")}
-                >
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "var(--bg-2)")}>
                   ☕ Donate freely
                 </a>
               </div>
             )}
           </div>
 
-          {/* Activation — only for non-Pro users */}
+          {/* Activation — only for non-Pro */}
           {!isPro && (
-            <div style={{
-              background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 16, padding: "20px",
-            }}>
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Already supported?</div>
-              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                Enter the activation code from your email to unlock Pro.
-              </p>
+              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Enter the activation code from your email to unlock Pro.</p>
               <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  type="text"
-                  placeholder="REELPRO-XXXXX"
-                  value={key}
+                <input type="text" placeholder="REELPRO-XXXXX" value={key}
                   onChange={(e) => { setKey(e.target.value.toUpperCase()); setKeyError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && handleActivate()}
-                  style={{
-                    flex: 1, background: "var(--bg-2)",
-                    border: `1px solid ${keyError ? "#ff3b30" : "var(--border)"}`,
-                    borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-mono)",
-                    fontSize: 13, padding: "10px 12px", outline: "none",
-                    transition: "border-color 0.15s",
-                    textTransform: "uppercase",
-                  }}
+                  style={{ flex: 1, background: "var(--bg-2)", border: `1px solid ${keyError ? "#ff3b30" : "var(--border)"}`, borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: 13, padding: "10px 12px", outline: "none", transition: "border-color 0.15s", textTransform: "uppercase" }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = keyError ? "#ff3b30" : "var(--accent)")}
                   onBlur={(e) => (e.currentTarget.style.borderColor = keyError ? "#ff3b30" : "var(--border)")}
                 />
-                <button
-                  onClick={handleActivate}
-                  disabled={activating}
-                  className="btn btn-primary"
-                  style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: activating ? 0.7 : 1 }}
-                >
+                <button onClick={handleActivate} disabled={activating} className="btn btn-primary"
+                  style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: activating ? 0.7 : 1 }}>
                   {activating ? "..." : "Activate"}
                 </button>
               </div>
-              {keyError && (
-                <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>
-                  {keyError}
-                </p>
-              )}
+              {keyError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{keyError}</p>}
             </div>
           )}
 
-          <p style={{
-            fontSize: 11, color: "var(--text-3)", textAlign: "center",
-            marginTop: 24, lineHeight: 1.6, fontFamily: "var(--font-mono)",
-          }}>
-            After supporting, check your email for the activation code.{"\n"}
-            Usually within 24 hours. Questions? noreply@leomagazzu.it
+          <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 24, lineHeight: 1.6, fontFamily: "var(--font-mono)" }}>
+            After supporting, check your email for the activation code.{"\n"}Usually within 24 hours. Questions? noreply@leomagazzu.it
           </p>
-
         </div>
       </div>
     </div>
