@@ -61,11 +61,15 @@ async function fetchRemoteScripts(token: string): Promise<Script[]> {
 }
 
 async function upsertRemoteScript(script: Script, userId: string, token: string): Promise<void> {
-  await fetch(`${SUPABASE_URL}/rest/v1/scripts`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/scripts`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(toRemote(script, userId)),
   });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    console.error("[useScripts] upsert failed", res.status, body);
+  }
 }
 
 async function deleteRemoteScript(id: string, token: string): Promise<void> {
@@ -109,6 +113,7 @@ export function useScripts(userId?: string, sessionToken?: string) {
 
     (async () => {
       setSyncing(true);
+      console.log("[useScripts] sync start — userId:", userId, "token present:", !!sessionToken);
       try {
         const remote = await fetchRemoteScripts(sessionToken);
         if (cancelled) return;
@@ -141,7 +146,7 @@ export function useScripts(userId?: string, sessionToken?: string) {
     setScripts(getScripts());
     // Fire-and-forget remote upsert
     const { userId, sessionToken } = authRef.current;
-    if (userId && sessionToken) upsertRemoteScript(s, userId, sessionToken).catch(() => {});
+    if (userId && sessionToken) upsertRemoteScript(s, userId, sessionToken).catch((e) => console.error("[useScripts] create sync error", e));
     return s;
   }, []);
 
@@ -150,7 +155,7 @@ export function useScripts(userId?: string, sessionToken?: string) {
     saveScript(updated);
     setScripts(getScripts());
     const { userId, sessionToken } = authRef.current;
-    if (userId && sessionToken) upsertRemoteScript(updated, userId, sessionToken).catch(() => {});
+    if (userId && sessionToken) upsertRemoteScript(updated, userId, sessionToken).catch((e) => console.error("[useScripts] save sync error", e));
     return updated;
   }, []);
 
@@ -158,7 +163,7 @@ export function useScripts(userId?: string, sessionToken?: string) {
     deleteScript(id);
     setScripts(getScripts());
     const { userId, sessionToken } = authRef.current;
-    if (userId && sessionToken) deleteRemoteScript(id, sessionToken).catch(() => {});
+    if (userId && sessionToken) deleteRemoteScript(id, sessionToken).catch((e) => console.error("[useScripts] delete sync error", e));
   }, []);
 
   const duplicate = useCallback((script: Script) => {
@@ -166,7 +171,7 @@ export function useScripts(userId?: string, sessionToken?: string) {
     saveScript(d);
     setScripts(getScripts());
     const { userId, sessionToken } = authRef.current;
-    if (userId && sessionToken) upsertRemoteScript(d, userId, sessionToken).catch(() => {});
+    if (userId && sessionToken) upsertRemoteScript(d, userId, sessionToken).catch((e) => console.error("[useScripts] duplicate sync error", e));
     return d;
   }, []);
 
