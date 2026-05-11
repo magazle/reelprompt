@@ -4,7 +4,6 @@ import { Script, TeleprompterSettings } from "../lib/types";
 import { useCamera } from "../hooks/useCamera";
 import { useTeleprompterScroll } from "../hooks/useTeleprompterScroll";
 import { useWakeLock } from "../hooks/useWakeLock";
-import { saveSettings } from "../lib/storage";
 import SettingsPanel from "./SettingsPanel";
 import {
   IconBack, IconSettings, IconPlay, IconPause,
@@ -36,7 +35,6 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
   const [scrollProgress, setScrollProgress] = useState(0);
 
   const controlsTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const videoRef         = useRef<HTMLVideoElement | null>(null);
 
   // ── Progress tracking ──
   useEffect(() => {
@@ -83,18 +81,16 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
 
   // ── Start camera on mount ──
   useEffect(() => {
-    camera.startCamera().then(() => {
-      if (videoRef.current && camera.streamRef.current)
-        videoRef.current.srcObject = camera.streamRef.current;
-    });
+    camera.startCamera();
     wake.acquire();
     return () => { camera.stopCamera(); scroll.stop(); wake.release(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Attach stream to video element
+  // Ref callback: attaches the camera stream whenever the video element mounts.
+  // Covers both the case where the element mounts before the stream is ready
+  // (handled here) and after (camera.startCamera sets srcObject on the stream).
   const attachVideo = useCallback((el: HTMLVideoElement | null) => {
-    videoRef.current = el;
     if (el && camera.streamRef.current) el.srcObject = camera.streamRef.current;
   }, [camera.streamRef]);
 
@@ -132,10 +128,9 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
     setShowControls(true);
   };
 
-  // Persist settings changes immediately
+  // Settings persistence is handled centrally in page.tsx handleSettingsChange.
   const handleSettingsChange = (s: TeleprompterSettings) => {
     onSettingsChange(s);
-    saveSettings(s);
   };
 
   // ── Derived state ──
@@ -329,7 +324,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
               <button
                 className="btn btn-ghost"
                 style={{ width: "100%" }}
-                onClick={() => { camera.resetRecording(); scroll.reset(); camera.startCamera(); }}
+                onClick={() => { camera.stopCamera(); camera.resetRecording(); scroll.reset(); camera.startCamera(); }}
               >
                 Record Again
               </button>
@@ -364,6 +359,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
             }}>
               <button
                 className="btn btn-icon"
+                title="Back to editor"
                 style={{ background: "rgba(0,0,0,0.4)", borderColor: "rgba(255,255,255,0.15)", color: "white" }}
                 onClick={onBack}
               >
@@ -391,6 +387,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
                 </button>
                 <button
                   className="btn btn-icon"
+                  title="Settings"
                   style={{ background: "rgba(0,0,0,0.4)", borderColor: "rgba(255,255,255,0.15)", color: "white" }}
                   onClick={() => setShowSettings(true)}
                 >
@@ -411,6 +408,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <button
                     className="btn btn-icon"
+                    title="Restart from top"
                     style={{ background: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.2)", color: "white", width: 44, height: 44 }}
                     onClick={scroll.reset}
                   >
@@ -514,6 +512,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
         {showSettings && (
           <div onClick={(e) => e.stopPropagation()}>
             <SettingsPanel
+              positionAbsolute
               settings={settings}
               onChange={handleSettingsChange}
               onClose={() => setShowSettings(false)}

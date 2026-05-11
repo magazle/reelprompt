@@ -1,14 +1,16 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Script, TeleprompterSettings } from "./lib/types";
 import { getSettings, saveSettings } from "./lib/storage";
 import { useScripts } from "./hooks/useScripts";
+import { countWords } from "./lib/utils";
 import ScriptCard from "./components/ScriptCard";
 import ScriptEditor from "./components/ScriptEditor";
 import TeleprompterView from "./components/TeleprompterView";
 import { IconPlus } from "./components/Icons";
 
 type View = "list" | "editor" | "teleprompter";
+type SortOrder = "recent" | "oldest" | "az";
 
 const GUIDE_STEPS = [
   {
@@ -38,11 +40,13 @@ const GUIDE_STEPS = [
   },
 ];
 
-// Show 3 cards at a time, arrow advances by 1
+// ── How-it-works carousel ─────────────────────────────────────────────────
+// Shows 3 cards at a time; the arrow advances by 1 and wraps back to start.
+
 function HowToGuide() {
   const [offset, setOffset] = useState(0);
   const visible = 3;
-  const max     = GUIDE_STEPS.length - visible; // 2
+  const max = GUIDE_STEPS.length - visible; // 2
 
   return (
     <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
@@ -57,10 +61,14 @@ function HowToGuide() {
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontSize: 18 }}>{step.emoji}</span>
-              <span style={{
-                fontSize: 9, fontFamily: "var(--font-mono)", color: "var(--text-3)",
-                letterSpacing: "0.08em",
-              }}>0{offset + i + 1}</span>
+              {/* Dot indicator: filled for current window, outline for others */}
+              <div style={{ display: "flex", gap: 3 }}>
+                {GUIDE_STEPS.map((_, di) => (
+                  di >= offset && di < offset + visible
+                    ? <div key={di} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--text-3)" }} />
+                    : <div key={di} style={{ width: 5, height: 5, borderRadius: "50%", border: "1px solid var(--border-2)" }} />
+                ))}
+              </div>
             </div>
             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>
               {step.title}
@@ -72,11 +80,11 @@ function HowToGuide() {
         ))}
       </div>
 
-      {/* Arrow */}
+      {/* Advance arrow */}
       <button
-        onClick={() => setOffset((o) => o >= max ? 0 : o + 1)}
+        onClick={() => setOffset((o) => (o >= max ? 0 : o + 1))}
         style={{
-          flexShrink: 0, width: 32, alignSelf: "stretch",
+          flexShrink: 0, width: 36, alignSelf: "stretch",
           background: "var(--surface)", border: "1px solid var(--border)",
           borderRadius: 12, cursor: "pointer",
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -91,6 +99,8 @@ function HowToGuide() {
     </div>
   );
 }
+
+// ── Search bar ────────────────────────────────────────────────────────────
 
 function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
@@ -109,7 +119,7 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
           fontSize: 14, padding: "10px 14px 10px 38px", outline: "none", transition: "border-color 0.15s",
         }}
         onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-        onBlur={(e)  => (e.currentTarget.style.borderColor = "var(--border)")}
+        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
       />
       {value && (
         <button onClick={() => onChange("")} style={{
@@ -121,6 +131,32 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
     </div>
   );
 }
+
+// ── Sort toggle ───────────────────────────────────────────────────────────
+
+const SORT_LABELS: Record<SortOrder, string> = { recent: "Recent", oldest: "Oldest", az: "A–Z" };
+const SORT_CYCLE: SortOrder[] = ["recent", "oldest", "az"];
+
+function SortButton({ sort, onToggle }: { sort: SortOrder; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      title="Change sort order"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4,
+        fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-3)",
+        background: "none", border: "1px solid var(--border)", borderRadius: 8,
+        cursor: "pointer", padding: "5px 10px", transition: "color 0.15s, border-color 0.15s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.borderColor = "var(--border-2)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-3)"; e.currentTarget.style.borderColor = "var(--border)"; }}
+    >
+      ↕ {SORT_LABELS[sort]}
+    </button>
+  );
+}
+
+// ── Footer (hidden on narrow mobile) ─────────────────────────────────────
 
 function Footer() {
   return (
@@ -148,22 +184,25 @@ function Footer() {
   );
 }
 
+// ── Root ──────────────────────────────────────────────────────────────────
+
 export default function Home() {
   const { scripts, create, save, remove, duplicate } = useScripts();
   const [view, setView]                 = useState<View>("list");
   const [activeScript, setActiveScript] = useState<Script | null>(null);
-  const [settings, setSettings]         = useState<TeleprompterSettings | null>(null);
+  // Lazy initialiser: getSettings() is synchronous — no useEffect, no null flash
+  const [settings, setSettings]         = useState<TeleprompterSettings>(getSettings);
   const [query, setQuery]               = useState("");
-
-  useEffect(() => { setSettings(getSettings()); }, []);
+  const [sort, setSort]                 = useState<SortOrder>("recent");
 
   const handleCreate = () => { const s = create(); setActiveScript(s); setView("editor"); };
   const handleEdit   = (s: Script) => { setActiveScript(s); setView("editor"); };
   const handleSave   = (s: Script) => { const u = save(s); setActiveScript(u); return u; };
+  const handleRecord = useCallback((s: Script) => { setActiveScript(s); setView("teleprompter"); }, []);
   const handleStartTeleprompter = (s: Script) => { setActiveScript(s); setView("teleprompter"); };
-  const handleSettingsChange    = (s: TeleprompterSettings) => { setSettings(s); saveSettings(s); };
-
-  if (!settings) return null;
+  // Single source of truth for settings persistence — components only call onSettingsChange
+  const handleSettingsChange = (s: TeleprompterSettings) => { setSettings(s); saveSettings(s); };
+  const cycleSort = () => setSort((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
 
   if (view === "teleprompter" && activeScript) {
     return <TeleprompterView script={activeScript} settings={settings} onSettingsChange={handleSettingsChange} onBack={() => setView("editor")} />;
@@ -173,21 +212,26 @@ export default function Home() {
     return <ScriptEditor script={activeScript} settings={settings} onSave={handleSave} onBack={() => setView("list")} onStartTeleprompter={handleStartTeleprompter} onSettingsChange={handleSettingsChange} />;
   }
 
-  const hasScripts = scripts.length > 0;
-  const filtered   = query.trim()
+  const hasScripts  = scripts.length > 0;
+  const totalWords  = scripts.reduce((acc, s) => acc + countWords(s.body), 0);
+
+  // Filter
+  const afterFilter = query.trim()
     ? scripts.filter((s) => {
         const q = query.toLowerCase();
         return s.title.toLowerCase().includes(q) || s.body.replace(/<[^>]*>/g, " ").toLowerCase().includes(q);
       })
     : scripts;
-  const totalWords = scripts.reduce((acc, s) => {
-    const t = s.body.replace(/<[^>]*>/g, " ").trim();
-    return acc + (t ? t.split(/\s+/).length : 0);
-  }, 0);
+
+  // Sort
+  const filtered = [...afterFilter].sort((a, b) => {
+    if (sort === "oldest") return a.updatedAt - b.updatedAt;
+    if (sort === "az")     return a.title.localeCompare(b.title);
+    return b.updatedAt - a.updatedAt; // recent (default)
+  });
 
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
 
-  // Shell: fixed height, flex column — this is the key to making scroll work
   const shell: React.CSSProperties = {
     height: "100dvh",
     background: "var(--bg)",
@@ -196,12 +240,13 @@ export default function Home() {
     overflow: "hidden",
   };
 
-  // Scrollable inner area
   const scroller: React.CSSProperties = {
     flex: 1,
     overflowY: "auto",
     WebkitOverflowScrolling: "touch",
   };
+
+  // ── Empty state (no scripts yet) ─────────────────────────────────────────
 
   if (!hasScripts) {
     return (
@@ -213,7 +258,6 @@ export default function Home() {
               ReelPrompt
             </div>
 
-            {/* Guide */}
             <div style={{ marginBottom: 32 }}>
               <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
                 How it works
@@ -221,13 +265,12 @@ export default function Home() {
               <HowToGuide />
             </div>
 
-            {/* CTA */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>🎬</div>
+              <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>✍️</div>
               <div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Ready to record?</h2>
+                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Write your first script</h2>
                 <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5 }}>
-                  Create your first script and start recording like a pro.
+                  Write or paste your script, calibrate your speed, then record.
                 </p>
               </div>
               <button className="btn btn-primary" onClick={handleCreate}>
@@ -241,57 +284,65 @@ export default function Home() {
     );
   }
 
+  // ── List state ────────────────────────────────────────────────────────────
+
   return (
     <div style={shell}>
       <div style={scroller}>
         <div style={{ padding: "0 24px 40px", paddingTop: topPad }}>
 
-          {/* Header */}
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 28 }}>
+          {/* Header — title, stats badges, and New button all in one row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>ReelPrompt</div>
-              <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 34, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
-                Your<br />Scripts
-              </h1>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>ReelPrompt</div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+                <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, lineHeight: 1.1, letterSpacing: "-0.02em" }}>
+                  Your Scripts
+                </h1>
+                <span style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                  {scripts.length} · {totalWords.toLocaleString()} words
+                </span>
+              </div>
             </div>
             <button className="btn btn-primary" style={{ borderRadius: 14, flexShrink: 0 }} onClick={handleCreate}>
               <IconPlus /> New
             </button>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: "flex", gap: 24, paddingBottom: 20, borderBottom: "1px solid var(--border)", marginBottom: 20 }}>
-            <div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{scripts.length}</div>
-              <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Scripts</div>
+          {/* Search + sort — always visible once there are scripts */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
+            <div style={{ flex: 1 }}>
+              <SearchBar value={query} onChange={setQuery} />
             </div>
-            <div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{totalWords.toLocaleString()}</div>
-              <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Words</div>
+            <div style={{ marginBottom: 16 }}>
+              <SortButton sort={sort} onToggle={cycleSort} />
             </div>
           </div>
 
-          {/* Guide */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
-              How it works
-            </div>
-            <HowToGuide />
-          </div>
-
-          {/* Search */}
-          {scripts.length >= 3 && <SearchBar value={query} onChange={setQuery} />}
+          {/* How-it-works — only shown to first-time users; hidden once scripts exist and user has seen it */}
+          {/* Collapsed behind a disclosure after first script — show it only on the empty state */}
 
           {/* Cards */}
           {filtered.length > 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {filtered.map((s) => (
-                <ScriptCard key={s.id} script={s} onEdit={handleEdit} onDuplicate={duplicate} onDelete={remove} />
+                <ScriptCard
+                  key={s.id}
+                  script={s}
+                  onEdit={handleEdit}
+                  onDuplicate={duplicate}
+                  onDelete={remove}
+                  onRecord={handleRecord}
+                />
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-3)", fontSize: 14 }}>
-              No scripts match "{query}"
+            /* Empty search result state */
+            <div style={{ textAlign: "center", padding: "48px 0 24px" }}>
+              <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+              <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No scripts match "{query}"</p>
+              <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 20 }}>Try a different search term or create a new script.</p>
+              <button className="btn btn-ghost" onClick={() => setQuery("")}>Clear search</button>
             </div>
           )}
         </div>

@@ -5,6 +5,8 @@ interface Props {
   settings: TeleprompterSettings;
   onChange: (s: TeleprompterSettings) => void;
   onClose: () => void;
+  /** Use absolute positioning when rendered inside a fixed-position parent (e.g. TeleprompterView). */
+  positionAbsolute?: boolean;
 }
 
 function Slider({ label, value, min, max, step, onChange, display }: {
@@ -59,12 +61,12 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function SettingsPanel({ settings, onChange, onClose }: Props) {
+export default function SettingsPanel({ settings, onChange, onClose, positionAbsolute }: Props) {
   const set = (patch: Partial<TeleprompterSettings>) => onChange({ ...settings, ...patch });
 
   return (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}
+      style={{ position: positionAbsolute ? "absolute" : "fixed", inset: 0, zIndex: 100, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}
       onClick={onClose}
     >
       <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }} />

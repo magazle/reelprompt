@@ -49,6 +49,8 @@ export function useTeleprompterScroll(speed: number) {
     rafRef.current = requestAnimationFrame(tick);
   }, [pxPerSecond, stop]);
 
+  // pause is a semantic alias for stop — kept separate so call sites can express intent
+  // (pause while recording vs stop at end-of-script) without implementation coupling.
   const pause = useCallback(() => {
     stop();
   }, [stop]);

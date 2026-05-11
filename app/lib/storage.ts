@@ -12,7 +12,7 @@ export function getScripts(): Script[] {
   } catch { return []; }
 }
 
-export function saveScripts(scripts: Script[]): void {
+function saveScripts(scripts: Script[]): void {
   localStorage.setItem(SCRIPTS_KEY, JSON.stringify(scripts));
 }
 
