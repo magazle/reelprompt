@@ -1,16 +1,22 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Script } from "../lib/types";
-import { IconBack, IconCheck, IconBold, IconItalic, IconList, IconEraser } from "./Icons";
+import { Script, TeleprompterSettings } from "../lib/types";
+import { saveSettings } from "../lib/storage";
+import {
+  IconBack, IconCheck, IconBold, IconItalic,
+  IconList, IconEraser, IconSettings, IconTarget,
+} from "./Icons";
+import SettingsPanel from "./SettingsPanel";
 
 interface Props {
   script: Script;
+  settings: TeleprompterSettings;
   onSave: (s: Script) => Script;
   onBack: () => void;
   onStartTeleprompter: (s: Script) => void;
+  onSettingsChange: (s: TeleprompterSettings) => void;
 }
 
-// Colour swatches available in the toolbar
 const COLOURS = [
   { label: "White",  value: "#f0f0f0" },
   { label: "Yellow", value: "#FFD60A" },
@@ -19,15 +25,17 @@ const COLOURS = [
   { label: "Blue",   value: "#64D2FF" },
 ];
 
-// Strip HTML tags to get a plain-text word count
+function htmlToPlain(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function countWords(html: string): number {
-  const plain = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  const plain = htmlToPlain(html);
   return plain ? plain.split(" ").length : 0;
 }
 
-// Estimated read time in seconds at 130 wpm
-function readTimeSec(words: number) {
-  return Math.round((words / 130) * 60);
+function readTimeSec(words: number, wpm: number | null) {
+  return Math.round((words / (wpm ?? 130)) * 60);
 }
 
 function formatReadTime(secs: number) {
@@ -35,13 +43,9 @@ function formatReadTime(secs: number) {
   return `${Math.floor(secs / 60)}m ${secs % 60}s`;
 }
 
-interface ToolbarButtonProps {
-  active?: boolean;
-  title: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}
-function ToolbarBtn({ active, title, onClick, children }: ToolbarButtonProps) {
+function ToolbarBtn({ active, title, onClick, children }: {
+  active?: boolean; title: string; onClick: () => void; children: React.ReactNode;
+}) {
   return (
     <button
       title={title}
@@ -59,20 +63,181 @@ function ToolbarBtn({ active, title, onClick, children }: ToolbarButtonProps) {
   );
 }
 
-export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompter }: Props) {
-  const [title, setTitle]   = useState(script.title);
-  const [saved, setSaved]   = useState(true);
-  const editorRef           = useRef<HTMLDivElement>(null);
-  const saveTimerRef        = useRef<NodeJS.Timeout | null>(null);
-  const currentScript       = useRef(script);
-  currentScript.current     = script;
+// ── WPM Calibrator (inline, inside editor) ────────────────────────────────
+type CalState = "idle" | "running" | "done";
 
-  // Track active formatting states
-  const [isBold, setIsBold]     = useState(false);
-  const [isItalic, setIsItalic] = useState(false);
+function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
+  script: Script;
+  currentWpm: number | null;
+  onCalibrated: (wpm: number, speed: number) => void;
+  onClose: () => void;
+}) {
+  const [state, setState]     = useState<CalState>("idle");
+  const [elapsed, setElapsed] = useState(0);
+  const startRef  = useRef<number>(0);
+  const timerRef  = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
+
+  const plainText = htmlToPlain(script.body);
+  const wordCount = plainText.trim().split(/\s+/).length;
+
+  const handleStart = useCallback(() => {
+    setState("running");
+    startRef.current = Date.now();
+    setElapsed(0);
+    timerRef.current = setInterval(() =>
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000)), 200);
+  }, []);
+
+  const handleDone = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const seconds = (Date.now() - startRef.current) / 1000;
+    if (seconds < 2) return;
+    const wpm   = Math.round((wordCount / seconds) * 60);
+    const speed = parseFloat(
+      Math.min(10, Math.max(1, ((wpm - 80) / 160) * 9 + 1)).toFixed(1)
+    );
+    setState("done");
+    onCalibrated(wpm, speed);
+  }, [wordCount, onCalibrated]);
+
+  return (
+    // Fullscreen overlay on top of the editor
+    <div style={{
+      position: "absolute", inset: 0, zIndex: 50,
+      background: "var(--bg)", display: "flex", flexDirection: "column",
+      overflow: "hidden",
+    }}>
+      {/* Header */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 12,
+        padding: "16px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
+      }}>
+        <button className="btn btn-icon" onClick={onClose}><IconBack /></button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 17, fontWeight: 700 }}>Calibrate Speed</div>
+          <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: 2 }}>
+            Read your script aloud · timer only, no microphone
+          </div>
+        </div>
+        {currentWpm && (
+          <div style={{
+            fontSize: 11, color: "var(--green)", fontFamily: "var(--font-mono)",
+            display: "flex", gap: 4, alignItems: "center",
+          }}>
+            <span>✓</span> {currentWpm} WPM
+          </div>
+        )}
+      </div>
+
+      {/* Instructions banner */}
+      <div style={{
+        margin: "16px 20px 0",
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: 12, padding: "12px 16px",
+        display: "flex", gap: 12, alignItems: "flex-start", flexShrink: 0,
+      }}>
+        <span style={{ fontSize: 20 }}>⏱</span>
+        <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
+          {state === "idle" && (
+            <>
+              Press <strong style={{ color: "var(--text)" }}>Start</strong> then read your
+              entire script aloud at your natural pace.
+              Read <strong style={{ color: "var(--text)" }}>the whole script</strong> — the
+              timer needs the full reading to calculate your WPM accurately.
+              Press <strong style={{ color: "var(--text)" }}>Done</strong> when you finish the last word.
+            </>
+          )}
+          {state === "running" && (
+            <>
+              Keep reading… Press <strong style={{ color: "var(--text)" }}>Done</strong> when
+              you finish <strong style={{ color: "var(--text)" }}>the last word</strong> of your script.
+            </>
+          )}
+          {state === "done" && (
+            <>
+              Scroll speed has been set automatically. You can fine-tune it in Settings at any time.
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Script text — scrollable */}
+      <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
+        <div
+          style={{
+            fontSize: 17, lineHeight: 1.8,
+            fontFamily: "var(--font-serif)", fontStyle: "italic",
+            color: "var(--text)",
+            opacity: state === "idle" ? 0.6 : 1,
+            transition: "opacity 0.3s",
+            wordBreak: "break-word",
+          }}
+          dangerouslySetInnerHTML={{ __html: script.body }}
+        />
+      </div>
+
+      {/* Footer CTA */}
+      <div style={{
+        padding: "16px 20px", borderTop: "1px solid var(--border)",
+        background: "var(--bg-2)", flexShrink: 0,
+        display: "flex", gap: 12, alignItems: "center",
+      }}>
+        {/* Timer */}
+        {state === "running" && (
+          <div style={{
+            fontSize: 28, fontFamily: "var(--font-mono)", fontWeight: 700,
+            color: "var(--accent)", letterSpacing: "0.04em", minWidth: 64,
+          }}>
+            {elapsed}s
+          </div>
+        )}
+
+        {state === "done" && (
+          <div style={{ flex: 1, display: "flex", gap: 12 }}>
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => { setState("idle"); setElapsed(0); }}>
+              Re-calibrate
+            </button>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={onClose}>
+              Done ✓
+            </button>
+          </div>
+        )}
+
+        {state === "idle" && (
+          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleStart}>
+            ▶ Start Reading
+          </button>
+        )}
+
+        {state === "running" && (
+          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleDone}>
+            ✓ Done — finished reading
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main ScriptEditor ─────────────────────────────────────────────────────
+export default function ScriptEditor({
+  script, settings, onSave, onBack, onStartTeleprompter, onSettingsChange,
+}: Props) {
+  const [title, setTitle]         = useState(script.title);
+  const [saved, setSaved]         = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showCalibrator, setShowCalibrator] = useState(false);
+  const editorRef                 = useRef<HTMLDivElement>(null);
+  const saveTimerRef              = useRef<NodeJS.Timeout | null>(null);
+  const currentScript             = useRef(script);
+  currentScript.current           = script;
+
+  const [isBold, setIsBold]       = useState(false);
+  const [isItalic, setIsItalic]   = useState(false);
   const [wordCount, setWordCount] = useState(countWords(script.body));
 
-  // Boot: inject saved HTML into contentEditable
   useEffect(() => {
     if (editorRef.current && script.body) {
       editorRef.current.innerHTML = script.body;
@@ -100,17 +265,14 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
 
   const handleTitleChange = (t: string) => {
     setTitle(t);
-    const html = editorRef.current?.innerHTML ?? "";
-    triggerSave(html, t);
+    triggerSave(editorRef.current?.innerHTML ?? "", t);
   };
 
-  // Update toolbar active state on selection change
   const updateToolbarState = () => {
     setIsBold(document.queryCommandState("bold"));
     setIsItalic(document.queryCommandState("italic"));
   };
 
-  // execCommand wrappers — keep focus in editor
   const exec = (cmd: string, value?: string) => {
     editorRef.current?.focus();
     document.execCommand(cmd, false, value);
@@ -120,12 +282,8 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
 
   const applyColour = (hex: string) => {
     editorRef.current?.focus();
-    // If default white, remove span so it inherits
-    if (hex === "#f0f0f0") {
-      document.execCommand("removeFormat", false);
-    } else {
-      document.execCommand("foreColor", false, hex);
-    }
+    if (hex === "#f0f0f0") document.execCommand("removeFormat", false);
+    else document.execCommand("foreColor", false, hex);
     handleInput();
   };
 
@@ -138,16 +296,27 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
     onStartTeleprompter({ ...currentScript.current, title, body: html });
   };
 
+  const handleCalibrated = (wpm: number, speed: number) => {
+    const updated = { ...settings, wpm, speed };
+    onSettingsChange(updated);
+    saveSettings(updated);
+  };
+
+  const handleSettingsChange = (s: TeleprompterSettings) => {
+    onSettingsChange(s);
+    saveSettings(s);
+  };
+
   const hasContent = wordCount > 0;
-  const readTime = formatReadTime(readTimeSec(wordCount));
+  const readTime   = formatReadTime(readTimeSec(wordCount, settings.wpm));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "var(--bg)", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", background: "var(--bg)", overflow: "hidden", position: "relative" }}>
 
       {/* ── HEADER ── */}
       <div style={{
         display: "flex", alignItems: "center", gap: 12,
-        padding: "16px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0
+        padding: "16px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
       }}>
         <button className="btn btn-icon" onClick={onBack}><IconBack /></button>
         <input
@@ -158,16 +327,24 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
           style={{
             flex: 1, background: "transparent", border: "none", padding: "4px 0",
             fontSize: 17, fontWeight: 700, borderRadius: 0,
-            borderBottom: "1px solid var(--border)"
+            borderBottom: "1px solid var(--border)",
           }}
         />
         <div style={{
           fontSize: 11, color: saved ? "var(--green)" : "var(--text-3)",
           fontFamily: "var(--font-mono)", display: "flex", alignItems: "center",
-          gap: 4, transition: "color 0.3s", flexShrink: 0
+          gap: 4, transition: "color 0.3s", flexShrink: 0,
         }}>
           {saved ? <><IconCheck /> saved</> : "saving…"}
         </div>
+        {/* Settings button */}
+        <button
+          className="btn btn-icon"
+          title="Settings"
+          onClick={() => setShowSettings(true)}
+        >
+          <IconSettings />
+        </button>
       </div>
 
       {/* ── FORMATTING TOOLBAR ── */}
@@ -175,7 +352,6 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
         display: "flex", alignItems: "center", gap: 6,
         padding: "10px 16px", borderBottom: "1px solid var(--border)",
         background: "var(--bg-2)", flexShrink: 0, overflowX: "auto",
-        WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"],
       }}>
         <ToolbarBtn active={isBold} title="Bold" onClick={() => exec("bold")}>
           <IconBold />
@@ -184,10 +360,8 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
           <IconItalic />
         </ToolbarBtn>
 
-        {/* Divider */}
         <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 2px" }} />
 
-        {/* Colour swatches */}
         {COLOURS.map((c) => (
           <button
             key={c.value}
@@ -195,22 +369,18 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
             onMouseDown={(e) => { e.preventDefault(); applyColour(c.value); }}
             style={{
               width: 26, height: 26, borderRadius: "50%", border: "2px solid var(--border-2)",
-              background: c.value, cursor: "pointer", flexShrink: 0,
-              transition: "transform 0.1s",
+              background: c.value, cursor: "pointer", flexShrink: 0, transition: "transform 0.1s",
             }}
             onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.2)")}
             onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
           />
         ))}
 
-        {/* Divider */}
         <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 2px" }} />
 
         <ToolbarBtn title="Bullet list" onClick={() => exec("insertUnorderedList")}>
           <IconList />
         </ToolbarBtn>
-
-        {/* Paragraph break hint */}
         <ToolbarBtn title="Clear formatting" onClick={() => exec("removeFormat")}>
           <IconEraser />
         </ToolbarBtn>
@@ -229,14 +399,10 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
           data-placeholder="Write your script here…&#10;&#10;Select text to colour it. Use Bold for emphasis, Italic for tone, Green for stage directions."
           className="rich-editor"
           style={{
-            minHeight: "100%",
-            padding: "20px",
-            fontSize: 16,
-            lineHeight: 1.7,
-            color: "var(--text)",
-            outline: "none",
-            fontFamily: "var(--font-display)",
-            wordBreak: "break-word",
+            minHeight: "100%", padding: "20px",
+            fontSize: 16, lineHeight: 1.7,
+            color: "var(--text)", outline: "none",
+            fontFamily: "var(--font-display)", wordBreak: "break-word",
           }}
         />
       </div>
@@ -245,20 +411,42 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 20px", borderTop: "1px solid var(--border)",
-        flexShrink: 0, background: "var(--bg-2)", gap: 12
+        flexShrink: 0, background: "var(--bg-2)", gap: 12,
       }}>
-        <div style={{ display: "flex", gap: 14, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 14, alignItems: "center", flexShrink: 0 }}>
+          {/* Word count */}
           <div>
             <span style={{ fontSize: 13, fontWeight: 700 }}>{wordCount}</span>
             <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", marginLeft: 4 }}>words</span>
           </div>
+          {/* Estimated read time */}
           {hasContent && (
             <div>
               <span style={{ fontSize: 13, fontWeight: 700 }}>{readTime}</span>
-              <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", marginLeft: 4 }}>est.</span>
+              <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", marginLeft: 4 }}>
+                {settings.wpm ? `@ ${settings.wpm} WPM` : "est."}
+              </span>
             </div>
           )}
+          {/* Calibrate button */}
+          {hasContent && (
+            <button
+              title="Calibrate scroll speed to your reading pace"
+              onClick={() => setShowCalibrator(true)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 5,
+                fontSize: 11, fontFamily: "var(--font-mono)", letterSpacing: "0.04em",
+                color: settings.wpm ? "var(--green)" : "var(--accent)",
+                background: "none", border: "none", cursor: "pointer", padding: 0,
+                textTransform: "uppercase",
+              }}
+            >
+              <IconTarget />
+              {settings.wpm ? "Re-calibrate" : "Calibrate"}
+            </button>
+          )}
         </div>
+
         <button
           className="btn btn-primary"
           disabled={!hasContent}
@@ -268,6 +456,25 @@ export default function ScriptEditor({ script, onSave, onBack, onStartTeleprompt
           Start Recording →
         </button>
       </div>
+
+      {/* ── WPM CALIBRATOR OVERLAY ── */}
+      {showCalibrator && hasContent && (
+        <WPMCalibrator
+          script={{ ...script, body: editorRef.current?.innerHTML ?? script.body }}
+          currentWpm={settings.wpm}
+          onCalibrated={handleCalibrated}
+          onClose={() => setShowCalibrator(false)}
+        />
+      )}
+
+      {/* ── SETTINGS PANEL ── */}
+      {showSettings && (
+        <SettingsPanel
+          settings={settings}
+          onChange={handleSettingsChange}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
     </div>
   );
 }
