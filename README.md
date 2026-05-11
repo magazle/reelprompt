@@ -173,18 +173,6 @@ list → editor → teleprompter → (done) → editor
 
 ---
 
-## Roadmap
-
-- [ ] Speech-recognition-based WPM calibration
-- [ ] Automatic script pacing suggestions (pauses, emphasis markers)
-- [ ] Cue card mode (text in blocks instead of continuous scroll)
-- [ ] Countdown length setting
-- [ ] IndexedDB for longer scripts
-- [ ] Script sharing via URL (base64 encoded)
-- [ ] Virtual studio background
-
----
-
 ## License
 
 MIT — do whatever you want with it. A mention or a link back is always appreciated but never required.
