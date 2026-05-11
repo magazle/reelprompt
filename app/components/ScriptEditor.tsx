@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Script, TeleprompterSettings } from "../lib/types";
-import { saveSettings } from "../lib/storage";
+import { htmlToPlain, countWords, readTimeSec, formatReadTime } from "../lib/utils";
 import {
   IconBack, IconCheck, IconBold, IconItalic,
   IconList, IconEraser, IconSettings, IconTarget,
@@ -24,26 +24,6 @@ const COLOURS = [
   { label: "Green",  value: "#30D158" },
   { label: "Blue",   value: "#64D2FF" },
 ];
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-function htmlToPlain(html: string): string {
-  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function countWords(html: string): number {
-  const plain = htmlToPlain(html);
-  return plain ? plain.split(" ").length : 0;
-}
-
-function readTimeSec(words: number, wpm: number | null) {
-  return Math.round((words / (wpm ?? 130)) * 60);
-}
-
-function formatReadTime(secs: number) {
-  if (secs < 60) return `${secs}s`;
-  return `${Math.floor(secs / 60)}m ${secs % 60}s`;
-}
 
 // ── Full Markdown → HTML parser ───────────────────────────────────────────
 // Handles: # h1, ## h2, **bold**, *italic*, - bullet, > blockquote, ---, paragraphs
@@ -261,7 +241,7 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
-  const wordCount = htmlToPlain(script.body).trim().split(/\s+/).length;
+  const wordCount = countWords(script.body);
 
   const handleStart = useCallback(() => {
     setState("running");
@@ -484,18 +464,17 @@ export default function ScriptEditor({
     const updated = onSave({ ...currentScript.current, title, body: html });
     currentScript.current = updated;
     setSaved(true);
-    onStartTeleprompter({ ...currentScript.current, title, body: html });
+    onStartTeleprompter(updated);
   };
 
+  // Settings persistence is handled centrally in page.tsx handleSettingsChange.
   const handleCalibrated = (wpm: number, speed: number) => {
-    const updated = { ...settings, wpm, speed };
-    onSettingsChange(updated);
-    saveSettings(updated);
+    onSettingsChange({ ...settings, wpm, speed });
   };
 
+  // Settings persistence is handled centrally in page.tsx handleSettingsChange.
   const handleSettingsChange = (s: TeleprompterSettings) => {
     onSettingsChange(s);
-    saveSettings(s);
   };
 
   const hasContent = wordCount > 0;

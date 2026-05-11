@@ -1,27 +1,23 @@
 "use client";
+import { useState } from "react";
 import { Script } from "../lib/types";
-import { IconTrash, IconDuplicate } from "./Icons";
+import { countWords, formatDate, readTimeSec, formatReadTime } from "../lib/utils";
+import { IconTrash, IconDuplicate, IconPlay } from "./Icons";
 
 interface Props {
   script: Script;
   onEdit: (s: Script) => void;
   onDuplicate: (s: Script) => void;
   onDelete: (id: string) => void;
+  onRecord: (s: Script) => void;
 }
 
-function formatDate(ts: number) {
-  return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+export default function ScriptCard({ script, onEdit, onDuplicate, onDelete, onRecord }: Props) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-function countWords(html: string) {
-  const plain = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-  return plain ? plain.split(" ").length : 0;
-}
-
-export default function ScriptCard({ script, onEdit, onDuplicate, onDelete }: Props) {
-  const words   = countWords(script.body);
-  // Plain text for word-count; rich HTML for preview
-  const isEmpty = words === 0;
+  const words    = countWords(script.body);
+  const isEmpty  = words === 0;
+  const readTime = formatReadTime(readTimeSec(words, null));
 
   return (
     <div
@@ -35,30 +31,76 @@ export default function ScriptCard({ script, onEdit, onDuplicate, onDelete }: Pr
           <h3 style={{
             fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17,
             color: "var(--text)", marginBottom: 2,
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
           }}>
-            {script.title || <span style={{ color: "var(--text-3)", fontStyle: "italic" }}>Untitled script</span>}
+            {script.title || (
+              <span style={{ color: "var(--text-3)", fontStyle: "italic" }}>
+                {new Date(script.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })} script
+              </span>
+            )}
           </h3>
-          <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+          <div style={{ display: "flex", gap: 10, fontSize: 12, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
             <span>{formatDate(script.updatedAt)}</span>
             <span>·</span>
             <span>{words} words</span>
+            {!isEmpty && <><span>·</span><span>{readTime}</span></>}
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 6 }} onClick={(e) => e.stopPropagation()}>
+        {/* Action buttons — stopPropagation so card click doesn't also fire */}
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
+
+          {/* Quick record — only when there is content */}
+          {!isEmpty && (
+            <button
+              className="btn btn-icon"
+              style={{ width: 44, height: 44, borderRadius: 12, color: "var(--accent)", borderColor: "var(--accent)", opacity: 0.85 }}
+              onClick={() => onRecord(script)}
+              title="Record now"
+            >
+              <IconPlay size={16} />
+            </button>
+          )}
+
           <button
             className="btn btn-icon"
-            style={{ width: 36, height: 36, borderRadius: 10, fontSize: 14 }}
+            style={{ width: 44, height: 44, borderRadius: 12 }}
             onClick={() => onDuplicate(script)}
             title="Duplicate"
-          ><IconDuplicate /></button>
-          <button
-            className="btn btn-icon"
-            style={{ width: 36, height: 36, borderRadius: 10, fontSize: 14, color: "var(--accent)" }}
-            onClick={() => { if (confirm("Delete this script?")) onDelete(script.id); }}
-            title="Delete"
-          ><IconTrash /></button>
+          >
+            <IconDuplicate />
+          </button>
+
+          {/* Inline delete — first tap shows confirm, second tap deletes */}
+          {confirmDelete ? (
+            <>
+              <button
+                className="btn btn-icon"
+                style={{ height: 44, borderRadius: 12, fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--accent)", borderColor: "var(--accent)", padding: "0 12px", width: "auto" }}
+                onClick={() => onDelete(script.id)}
+                title="Confirm delete"
+              >
+                Delete
+              </button>
+              <button
+                className="btn btn-icon"
+                style={{ width: 44, height: 44, borderRadius: 12, fontSize: 14 }}
+                onClick={() => setConfirmDelete(false)}
+                title="Cancel"
+              >
+                ✕
+              </button>
+            </>
+          ) : (
+            <button
+              className="btn btn-icon"
+              style={{ width: 44, height: 44, borderRadius: 12, color: "var(--accent)" }}
+              onClick={() => setConfirmDelete(true)}
+              title="Delete"
+            >
+              <IconTrash />
+            </button>
+          )}
         </div>
       </div>
 

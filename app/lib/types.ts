@@ -9,7 +9,7 @@ export interface Script {
 export interface TeleprompterSettings {
   speed: number;                            // 1–10
   fontSize: number;                         // px
-  lineSpacing: number;                      // 1–3
+  lineSpacing: number;                      // 1–2.5
   textWidth: number;                        // 50–100%
   position: "top" | "center" | "bottom";
   mirrorText: boolean;
