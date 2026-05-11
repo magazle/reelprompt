@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { validateProCode } from "../lib/supabase";
 
 const KO_FI_URL = "https://ko-fi.com/s/e02564e7cc";
 
@@ -8,6 +9,12 @@ interface Props {
   onBack: () => void;
   onActivate: (key: string) => void;
 }
+
+const ERROR_MESSAGES = {
+  invalid: "Code not found — double-check your email.",
+  already_used: "This code has already been used.",
+  error: "Something went wrong — try again in a moment.",
+};
 
 const CHECK = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -36,16 +43,23 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
   const [keyError, setKeyError] = useState("");
   const [activating, setActivating] = useState(false);
 
-  const handleActivate = () => {
+  const handleActivate = async () => {
     const trimmed = key.trim();
     if (!trimmed) { setKeyError("Enter your activation code."); return; }
     if (trimmed.length < 6) { setKeyError("Code looks too short — check your email."); return; }
+
     setActivating(true);
-    // Simulate activation — replace with real validation later
-    setTimeout(() => {
+    setKeyError("");
+
+    const result = await validateProCode(trimmed);
+
+    if (result === "ok") {
       onActivate(trimmed);
-      setActivating(false);
-    }, 800);
+    } else {
+      setKeyError(ERROR_MESSAGES[result]);
+    }
+
+    setActivating(false);
   };
 
   const shell: React.CSSProperties = {
@@ -119,7 +133,7 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
             {/* Free card */}
             <div style={{
               background: "var(--surface)", border: "1px solid var(--border)",
-              borderRadius: 16, padding: "20px 20px",
+              borderRadius: 16, padding: "20px",
             }}>
               <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
                 <div>
@@ -140,9 +154,10 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
             {/* Pro card */}
             <div style={{
               background: "var(--surface)", border: "2px solid var(--accent)",
-              borderRadius: 16, padding: "20px 20px",
+              borderRadius: 16, padding: "20px",
               boxShadow: "0 0 32px var(--accent-glow)",
             }}>
+              {/* Title row */}
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>✦ Pro</div>
@@ -190,11 +205,11 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
               </a>
             </div>
 
-            {/* Support card — only shown to Pro users */}
+            {/* Support card — only for Pro users */}
             {isPro && (
               <div style={{
                 background: "var(--surface)", border: "1px solid var(--border)",
-                borderRadius: 16, padding: "20px 20px",
+                borderRadius: 16, padding: "20px",
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>☕ Buy me a coffee</div>
                 <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
@@ -221,7 +236,7 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
             )}
           </div>
 
-          {/* Activation section */}
+          {/* Activation — only for non-Pro users */}
           {!isPro && (
             <div style={{
               background: "var(--surface)", border: "1px solid var(--border)",
@@ -234,24 +249,26 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
               <div style={{ display: "flex", gap: 8 }}>
                 <input
                   type="text"
-                  placeholder="Activation code"
+                  placeholder="REELPRO-XXXXX"
                   value={key}
-                  onChange={(e) => { setKey(e.target.value); setKeyError(""); }}
+                  onChange={(e) => { setKey(e.target.value.toUpperCase()); setKeyError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && handleActivate()}
                   style={{
-                    flex: 1, background: "var(--bg-2)", border: `1px solid ${keyError ? "#ff3b30" : "var(--border)"}`,
+                    flex: 1, background: "var(--bg-2)",
+                    border: `1px solid ${keyError ? "#ff3b30" : "var(--border)"}`,
                     borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-mono)",
                     fontSize: 13, padding: "10px 12px", outline: "none",
                     transition: "border-color 0.15s",
+                    textTransform: "uppercase",
                   }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = keyError ? "#ff3b30" : "var(--accent)")}
                   onBlur={(e) => (e.currentTarget.style.borderColor = keyError ? "#ff3b30" : "var(--border)")}
                 />
                 <button
                   onClick={handleActivate}
                   disabled={activating}
                   className="btn btn-primary"
-                  style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0 }}
+                  style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: activating ? 0.7 : 1 }}
                 >
                   {activating ? "..." : "Activate"}
                 </button>
@@ -264,13 +281,12 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
             </div>
           )}
 
-          {/* Footer note */}
           <p style={{
             fontSize: 11, color: "var(--text-3)", textAlign: "center",
             marginTop: 24, lineHeight: 1.6, fontFamily: "var(--font-mono)",
           }}>
             After supporting, check your email for the activation code.{"\n"}
-            Usually within 24 hours. Questions? leo@reelprompt.xyz
+            Usually within 24 hours. Questions? noreply@leomagazzu.it
           </p>
 
         </div>
