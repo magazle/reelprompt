@@ -36,7 +36,7 @@ export default function SuccessView({ onBack }: Props) {
     const result = await validateProCode(trimmed);
     if (result === "ok") {
       // Store validated code — isPro written only after magic link click
-      sessionStorage.setItem("reelprompt:pending-code", trimmed);
+      localStorage.setItem("reelprompt:pending-code", trimmed);
       setStep("email");
     } else {
       setCodeError(ERROR_MESSAGES[result]);
