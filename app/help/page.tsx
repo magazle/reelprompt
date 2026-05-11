@@ -63,7 +63,7 @@ const sections = [
 export default function HelpPage() {
   return (
     <html lang="en">
-      <body style={{ margin: 0, padding: 0, fontFamily: "Syne, sans-serif", background: "#f9f9f7", color: "#0f1f14" }}>
+      <body style={{ margin: 0, padding: 0, fontFamily: "Syne, sans-serif", background: "#f9f9f7", color: "#0f1f14", overflowY: "auto", minHeight: "100vh" }}>
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px 80px" }}>
 
           {/* Back button */}
