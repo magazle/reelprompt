@@ -5,21 +5,22 @@
 @tailwind utilities;
 
 :root {
-  --bg:          #080808;
-  --bg-2:        #111111;
-  --bg-3:        #1a1a1a;
-  --surface:     #1e1e1e;
-  --surface-2:   #262626;
-  --border:      #2a2a2a;
-  --border-2:    #333333;
-  --text:        #f0f0f0;
-  --text-2:      #999999;
-  --text-3:      #555555;
-  --accent:      #ff3b30;
-  --accent-2:    #ff6b35;
-  --accent-glow: rgba(255, 59, 48, 0.3);
-  --green:       #30d158;
-  --blue:        #0a84ff;
+  /* ── Studio palette ── */
+  --bg:          #f9f9f7;
+  --bg-2:        #f0f0ec;
+  --bg-3:        #e8e8e2;
+  --surface:     #ffffff;
+  --surface-2:   #f4f4f0;
+  --border:      #e2e2db;
+  --border-2:    #d0d0c8;
+  --text:        #0f1f14;
+  --text-2:      #4a6654;
+  --text-3:      #86a892;
+  --accent:      #16a34a;
+  --accent-2:    #15803d;
+  --accent-glow: rgba(22, 163, 74, 0.25);
+  --green:       #16a34a;
+  --blue:        #2563eb;
   --font-display: 'Syne', sans-serif;
   --font-mono:    'DM Mono', monospace;
   --font-serif:   'Instrument Serif', serif;
@@ -34,11 +35,12 @@ html, body {
   overflow-x: hidden;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 1px; }
+::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
 
 /* ── Teleprompter fade mask ── */
 .prompt-fade {
@@ -52,9 +54,9 @@ html, body {
 .focus-line {
   background: linear-gradient(to bottom,
     transparent,
-    rgba(255,59,48,0.04) 30%,
-    rgba(255,59,48,0.10) 50%,
-    rgba(255,59,48,0.04) 70%,
+    rgba(22,163,74,0.04) 30%,
+    rgba(22,163,74,0.10) 50%,
+    rgba(22,163,74,0.04) 70%,
     transparent);
 }
 
@@ -89,14 +91,14 @@ html, body {
 .btn:active { transform: scale(0.97); }
 
 .btn-primary { background: var(--accent); color: white; padding: 14px 24px; font-size: 15px; }
-.btn-primary:hover { background: #ff4d44; box-shadow: 0 0 24px var(--accent-glow); }
+.btn-primary:hover { background: var(--accent-2); box-shadow: 0 0 24px var(--accent-glow); }
 
-.btn-ghost { background: var(--surface); color: var(--text); padding: 12px 20px; font-size: 14px; border: 1px solid var(--border); }
+.btn-ghost { background: var(--surface); color: var(--text); padding: 12px 20px; font-size: 14px; border: 1px solid var(--border-2); }
 .btn-ghost:hover { background: var(--surface-2); border-color: var(--border-2); }
 
 .btn-icon {
   width: 44px; height: 44px; border-radius: 12px;
-  background: var(--surface); border: 1px solid var(--border);
+  background: var(--surface); border: 1px solid var(--border-2);
   color: var(--text-2); font-size: 18px; padding: 0;
 }
 .btn-icon:hover { background: var(--surface-2); color: var(--text); }
