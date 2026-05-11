@@ -11,6 +11,7 @@ import TeleprompterView from "./components/TeleprompterView";
 import PricingView from "./components/PricingView";
 import SuccessView from "./components/SuccessView";
 import AccountView from "./components/AccountView";
+import WelcomeModal from "./components/WelcomeModal";
 import CookieBanner from "./components/CookieBanner";
 import { IconPlus } from "./components/Icons";
 
@@ -208,19 +209,23 @@ function Footer() {
   return (
     <div style={{ padding: "16px 24px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0 }}>
       <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>© 2026 Leo Magazzu</span>
-      <a href="/privacy" style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textDecoration: "none", transition: "color 0.15s" }}
-        onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}>
-        Privacy Policy
-      </a>
+      <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+        <a href="/help" style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textDecoration: "none", transition: "color 0.15s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}>
+          Help
+        </a>
+        <a href="/privacy" style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textDecoration: "none", transition: "color 0.15s" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-3)")}>
+          Privacy
+        </a>
+      </div>
     </div>
   );
 }
 
-// ── Header right button ───────────────────────────────────────────────────
-// Free user            → "✦ Go Pro"  (green, goes to pricing)
-// Pro, not logged in   → "✦ Pro" circle (goes to account to set up sync)
-// Pro, logged in       → "✦" green circle (goes to account)
+// ── Header Pro button ─────────────────────────────────────────────────────
 
 function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLoggedIn: boolean; onClick: () => void }) {
   if (!isPro) {
@@ -233,18 +238,9 @@ function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLog
       </button>
     );
   }
-  // Pro user — circle button, green if logged in, muted if not
   return (
     <button onClick={onClick} title={isLoggedIn ? "Your Pro account" : "Set up sync"}
-      style={{
-        width: 38, height: 38, borderRadius: "50%",
-        background: isLoggedIn ? "var(--accent)" : "var(--bg-2)",
-        color: isLoggedIn ? "white" : "var(--accent)",
-        border: isLoggedIn ? "none" : "1.5px solid var(--accent)",
-        cursor: "pointer", fontSize: 15,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        transition: "background 0.15s",
-      }}>
+      style={{ width: 38, height: 38, borderRadius: "50%", background: isLoggedIn ? "var(--accent)" : "var(--bg-2)", color: isLoggedIn ? "white" : "var(--accent)", border: isLoggedIn ? "none" : "1.5px solid var(--accent)", cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}>
       ✦
     </button>
   );
@@ -261,9 +257,34 @@ export default function Home() {
   const [query, setQuery]               = useState("");
   const [sort, setSort]                 = useState<SortOrder>("recent");
   const [showHowTo, setShowHowTo]       = useState(false);
-  const [isPro, setIsPro]               = useState<boolean>(() => {
+  const [showWelcome, setShowWelcome]   = useState(false);
+
+  // isPro is true if:
+  // 1. localStorage has reelprompt:pro = "true" (set after magic link confirmed), OR
+  // 2. user is logged in (Supabase session active)
+  // This ensures offline Pro users still get Pro experience
+  const [isPro, setIsPro] = useState<boolean>(() => {
     try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
   });
+
+  // Sync isPro with auth state
+  useEffect(() => {
+    if (user) {
+      const storedPro = localStorage.getItem("reelprompt:pro") === "true";
+      if (storedPro) setIsPro(true);
+    }
+  }, [user]);
+
+  // Show WelcomeModal once after first Pro sign-in
+  useEffect(() => {
+    if (!user) return;
+    const welcomed = localStorage.getItem("reelprompt:welcomed");
+    const pro = localStorage.getItem("reelprompt:pro") === "true";
+    if (pro && !welcomed) {
+      setShowWelcome(true);
+      localStorage.setItem("reelprompt:welcomed", "1");
+    }
+  }, [user]);
 
   // Detect ?pro=success redirect from Ko-fi
   useEffect(() => {
@@ -283,20 +304,12 @@ export default function Home() {
   const handleSettingsChange = (s: TeleprompterSettings) => { setSettings(s); saveSettings(s); };
   const cycleSort = () => setSort((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
 
-  // Called by SuccessView after successful code validation
-  const handleActivate = (key: string) => {
-    localStorage.setItem("reelprompt:pro", "true");
-    localStorage.setItem("reelprompt:pro-key", key);
-    setIsPro(true);
-    // WelcomeModal is shown inside SuccessView, then it calls onBack → list
-  };
+  // Called by SuccessView — isPro will be set by useAuth after magic link
+  // Nothing to do here except navigate back
+  const handleSuccessBack = () => setView("list");
 
-  // Single source of truth for sign out
+  // Sign out: useAuth handles localStorage cleanup via SIGNED_OUT event
   const handleSignOut = () => {
-    try {
-      localStorage.removeItem("reelprompt:pro");
-      localStorage.removeItem("reelprompt:pro-key");
-    } catch { /* noop */ }
     setIsPro(false);
     setView("list");
   };
@@ -312,10 +325,10 @@ export default function Home() {
     return <AccountView onBack={() => setView("list")} onSignOut={handleSignOut} />;
   }
   if (view === "success") {
-    return <SuccessView onActivate={handleActivate} onBack={() => setView("list")} />;
+    return <SuccessView onBack={handleSuccessBack} />;
   }
   if (view === "pricing") {
-    return <PricingView isPro={isPro} onBack={() => setView("list")} onActivate={handleActivate} />;
+    return <PricingView isPro={isPro} onBack={() => setView("list")} onActivate={() => setView("success")} />;
   }
   if (view === "teleprompter" && activeScript) {
     return <TeleprompterView script={activeScript} settings={settings} onSettingsChange={handleSettingsChange} onBack={() => setView("editor")} />;
@@ -347,9 +360,7 @@ export default function Home() {
         style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
         ?
       </button>
-      {!authLoading && (
-        <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
-      )}
+      {!authLoading && <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
     </div>
   );
 
@@ -378,6 +389,7 @@ export default function Home() {
         <Footer />
         <CookieBanner />
         {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
+        {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
       </div>
     );
   }
@@ -401,9 +413,7 @@ export default function Home() {
                 style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
                 ?
               </button>
-              {!authLoading && (
-                <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
-              )}
+              {!authLoading && <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />}
               <button className="btn btn-primary" style={{ borderRadius: 14 }} onClick={handleCreate}><IconPlus /> New</button>
             </div>
           </div>
@@ -431,6 +441,7 @@ export default function Home() {
       <Footer />
       <CookieBanner />
       {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
+      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
     </div>
   );
 }

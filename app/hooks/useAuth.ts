@@ -14,7 +14,27 @@ export function useAuth() {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_, session) => setUser(session?.user ?? null)
+      (event, session) => {
+        const u = session?.user ?? null;
+        setUser(u);
+
+        // When user completes magic link sign-in AND has a pending pro code,
+        // write the pro flag. This is the only place isPro gets set to true.
+        if (event === "SIGNED_IN" && u) {
+          const pendingCode = sessionStorage.getItem("reelprompt:pending-code");
+          if (pendingCode) {
+            localStorage.setItem("reelprompt:pro", "true");
+            localStorage.setItem("reelprompt:pro-key", pendingCode);
+            sessionStorage.removeItem("reelprompt:pending-code");
+          }
+        }
+
+        // On sign out: clear pro flag
+        if (event === "SIGNED_OUT") {
+          localStorage.removeItem("reelprompt:pro");
+          localStorage.removeItem("reelprompt:pro-key");
+        }
+      }
     );
 
     return () => subscription.unsubscribe();
