@@ -20,14 +20,17 @@ export default function AccountView({ onBack, onSignOut }: Props) {
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncError, setSyncError] = useState("");
 
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+
   const handleSignOut = async () => {
-    await signOut();
-    onSignOut(); // page.tsx clears localStorage + state
+    await signOut(); // Supabase clears session + useAuth clears localStorage via SIGNED_OUT event
+    onSignOut();     // page.tsx resets isPro state + goes to list
   };
 
   const handleSendMagicLink = async () => {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes("@")) { setSyncError("Enter a valid email address."); return; }
+    if (isOffline) { setSyncError("You're offline — connect to the internet to sign in."); return; }
     setSyncLoading(true);
     setSyncError("");
     const { error } = await signIn(trimmed);
@@ -72,6 +75,16 @@ export default function AccountView({ onBack, onSignOut }: Props) {
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>ReelPrompt</div>
           </div>
 
+          {/* Offline warning */}
+          {isOffline && (
+            <div style={{ padding: "12px 14px", borderRadius: 12, background: "var(--bg-2)", border: "1px solid var(--border-2)", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 16 }}>📡</span>
+              <p style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, fontFamily: "var(--font-mono)", margin: 0 }}>
+                You're offline. Sync is paused — your scripts are still available locally.
+              </p>
+            </div>
+          )}
+
           {/* Pro badge */}
           <div style={{ background: "var(--surface)", border: "2px solid var(--accent)", borderRadius: 16, padding: "20px", boxShadow: "0 0 32px var(--accent-glow)", marginBottom: 14 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: user?.email ? 12 : 0 }}>
@@ -97,10 +110,10 @@ export default function AccountView({ onBack, onSignOut }: Props) {
               <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>☁ Sync across devices</div>
               {syncSent ? (
                 <div style={{ textAlign: "center", padding: "8px 0" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>📬</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Check your email</div>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>📬</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Check your email</div>
                   <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-                    We sent a magic link to <strong>{email}</strong>. Tap it to sign in on any device.
+                    We sent a magic link to <strong>{email}</strong>.<br />Tap it to sign in on any device.
                   </p>
                 </div>
               ) : (
@@ -116,8 +129,8 @@ export default function AccountView({ onBack, onSignOut }: Props) {
                       onFocus={(e) => (e.currentTarget.style.borderColor = syncError ? "#ff3b30" : "var(--accent)")}
                       onBlur={(e) => (e.currentTarget.style.borderColor = syncError ? "#ff3b30" : "var(--border)")}
                     />
-                    <button onClick={handleSendMagicLink} disabled={syncLoading} className="btn btn-primary"
-                      style={{ padding: "10px 14px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: syncLoading ? 0.7 : 1 }}>
+                    <button onClick={handleSendMagicLink} disabled={syncLoading || isOffline} className="btn btn-primary"
+                      style={{ padding: "10px 14px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: syncLoading || isOffline ? 0.7 : 1 }}>
                       {syncLoading ? "..." : "Send"}
                     </button>
                   </div>
@@ -174,13 +187,11 @@ export default function AccountView({ onBack, onSignOut }: Props) {
             )}
           </div>
 
-          {/* Sign out — only when logged in */}
-          {user && (
-            <button onClick={handleSignOut} className="btn btn-ghost"
-              style={{ width: "100%", fontSize: 14, color: "var(--text-3)" }}>
-              Sign out
-            </button>
-          )}
+          {/* Sign out — always visible for Pro users */}
+          <button onClick={handleSignOut} className="btn btn-ghost"
+            style={{ width: "100%", fontSize: 14, color: "var(--text-3)" }}>
+            Sign out
+          </button>
 
         </div>
       </div>

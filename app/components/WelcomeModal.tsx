@@ -37,7 +37,7 @@ export default function WelcomeModal({ onClose }: Props) {
           fontSize: 13, color: "var(--text-2)", lineHeight: 1.6,
           marginBottom: 24, fontFamily: "var(--font-mono)",
         }}>
-          Your scripts will sync across all your devices. Sign in from your profile to activate sync.
+          You're all set. Your scripts will sync across all your devices automatically.
         </p>
         <button
           onClick={onClose}

@@ -7,7 +7,7 @@ const KO_FI_URL = "https://ko-fi.com/s/e02564e7cc";
 interface Props {
   isPro: boolean;
   onBack: () => void;
-  onActivate: (key: string) => void;
+  onActivate: () => void;
 }
 
 const ERROR_MESSAGES = {
@@ -51,7 +51,7 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
     setKeyError("");
     const result = await validateProCode(trimmed);
     if (result === "ok") {
-      onActivate(trimmed);
+      onActivate();
     } else {
       setKeyError(ERROR_MESSAGES[result]);
     }
