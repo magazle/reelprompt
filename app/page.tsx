@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Script, TeleprompterSettings } from "./lib/types";
 import { getSettings, saveSettings } from "./lib/storage";
 import { useScripts } from "./hooks/useScripts";
@@ -40,6 +40,129 @@ const GUIDE_STEPS = [
   },
 ];
 
+
+// ── PWA Install Banner ────────────────────────────────────────────────────
+// Android/Chrome: captures the beforeinstallprompt event and shows a button.
+// iOS Safari: detects the platform and shows manual instructions.
+// Dismissed state persists for the session only (no localStorage — not worth
+// the friction of a permanent dismiss that blocks future installs).
+
+function useInstallPrompt() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const promptRef = useRef<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Already installed as PWA
+    const standalone = window.matchMedia("(display-mode: standalone)").matches
+      || ("standalone" in navigator && (navigator as { standalone?: boolean }).standalone === true);
+    setIsStandalone(standalone);
+    if (standalone) return;
+
+    // iOS detection (no beforeinstallprompt support)
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios/i.test(navigator.userAgent);
+    setIsIOS(ios);
+
+    // Android / Chrome / Edge — capture the prompt
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler = (e: any) => {
+      e.preventDefault();
+      promptRef.current = e;
+      setCanInstall(true);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const triggerInstall = useCallback(async () => {
+    if (!promptRef.current) return;
+    promptRef.current.prompt();
+    const { outcome } = await promptRef.current.userChoice;
+    if (outcome === "accepted") {
+      setCanInstall(false);
+      promptRef.current = null;
+    }
+  }, []);
+
+  return { canInstall, isIOS, isStandalone, triggerInstall };
+}
+
+function InstallBanner() {
+  const { canInstall, isIOS, isStandalone, triggerInstall } = useInstallPrompt();
+  const [dismissed, setDismissed] = useState(false);
+
+  if (isStandalone || dismissed) return null;
+
+  if (canInstall) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 12, padding: "12px 16px",
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: 14, marginBottom: 20, flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 20 }}>📲</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>Add to Home Screen</div>
+            <div style={{ fontSize: 11, color: "var(--text-3)" }}>Use offline, fullscreen</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <button
+            onClick={triggerInstall}
+            className="btn btn-primary"
+            style={{ padding: "8px 16px", fontSize: 13, borderRadius: 10 }}
+          >
+            Install
+          </button>
+          <button
+            onClick={() => setDismissed(true)}
+            className="btn btn-icon"
+            style={{ width: 36, height: 36, borderRadius: 10, fontSize: 16 }}
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isIOS) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+        gap: 12, padding: "12px 16px",
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: 14, marginBottom: 20, flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <span style={{ fontSize: 20 }}>📲</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>Add to Home Screen</div>
+            <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>
+              Tap <strong style={{ color: "var(--text-2)" }}>Share</strong> → <strong style={{ color: "var(--text-2)" }}>Add to Home Screen</strong>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setDismissed(true)}
+          className="btn btn-icon"
+          style={{ width: 36, height: 36, borderRadius: 10, fontSize: 16, flexShrink: 0 }}
+          title="Dismiss"
+        >
+          ✕
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 // ── How-it-works carousel ─────────────────────────────────────────────────
 // Shows 3 cards at a time; the arrow advances by 1 and wraps back to start.
 
@@ -59,17 +182,7 @@ function HowToGuide() {
             borderRadius: 12, padding: "12px 12px 14px",
             display: "flex", flexDirection: "column", gap: 6,
           }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 18 }}>{step.emoji}</span>
-              {/* Dot indicator: filled for current window, outline for others */}
-              <div style={{ display: "flex", gap: 3 }}>
-                {GUIDE_STEPS.map((_, di) => (
-                  di >= offset && di < offset + visible
-                    ? <div key={di} style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--text-3)" }} />
-                    : <div key={di} style={{ width: 5, height: 5, borderRadius: "50%", border: "1px solid var(--border-2)" }} />
-                ))}
-              </div>
-            </div>
+            <span style={{ fontSize: 18 }}>{step.emoji}</span>
             <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>
               {step.title}
             </div>
@@ -258,6 +371,9 @@ export default function Home() {
               ReelPrompt
             </div>
 
+            {/* PWA install prompt */}
+            <InstallBanner />
+
             <div style={{ marginBottom: 32 }}>
               <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
                 How it works
@@ -308,6 +424,9 @@ export default function Home() {
               <IconPlus /> New
             </button>
           </div>
+
+          {/* PWA install prompt */}
+          <InstallBanner />
 
           {/* Search + sort — always visible once there are scripts */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
