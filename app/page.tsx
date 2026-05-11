@@ -12,28 +12,6 @@ import { IconPlus } from "./components/Icons";
 type View = "list" | "editor" | "teleprompter";
 type SortOrder = "recent" | "oldest" | "az";
 
-const GUIDE_STEPS = [
-  {
-    emoji: "✍️",
-    title: "Write",
-    body: "Type or paste Markdown. Use the toolbar for bold, colours and headings.",
-  },
-  {
-    emoji: "⚡",
-    title: "Calibrate",
-    body: "Tap Calibrate, read aloud, and ReelPrompt sets scroll speed to your pace.",
-  },
-  {
-    emoji: "🎬",
-    title: "Record",
-    body: "3-2-1 countdown, then read. The overlay never appears in the video.",
-  },
-  {
-    emoji: "💾",
-    title: "Save",
-    body: "Download the clean video and upload to Instagram, TikTok or YouTube.",
-  },
-];
 
 
 // ── PWA Install Banner ────────────────────────────────────────────────────
@@ -189,55 +167,6 @@ function InstallBanner() {
   return null;
 }
 
-// ── How-it-works carousel ─────────────────────────────────────────────────
-// Shows 3 cards at a time; the arrow advances by 1 and wraps back to start.
-
-function HowToGuide() {
-  const [offset, setOffset] = useState(0);
-  const visible = 3;
-  const max = GUIDE_STEPS.length - visible; // 2
-
-  return (
-    <div style={{ display: "flex", alignItems: "stretch", gap: 8 }}>
-      {/* Cards */}
-      <div style={{ flex: 1, display: "flex", gap: 8, overflow: "hidden" }}>
-        {GUIDE_STEPS.slice(offset, offset + visible).map((step, i) => (
-          <div key={offset + i} style={{
-            flex: 1, minWidth: 0,
-            background: "var(--surface)", border: "1px solid var(--border)",
-            borderRadius: 12, padding: "12px 12px 14px",
-            display: "flex", flexDirection: "column", gap: 6,
-          }}>
-            <span style={{ fontSize: 18 }}>{step.emoji}</span>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", lineHeight: 1.2 }}>
-              {step.title}
-            </div>
-            <div style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.5, whiteSpace: "pre-line" }}>
-              {step.body}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Advance arrow */}
-      <button
-        onClick={() => setOffset((o) => (o >= max ? 0 : o + 1))}
-        style={{
-          flexShrink: 0, width: 36, alignSelf: "stretch",
-          background: "var(--surface)", border: "1px solid var(--border)",
-          borderRadius: 12, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: "var(--text-2)", fontSize: 16, transition: "background 0.15s",
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface)")}
-        title={offset >= max ? "Back to start" : "Next"}
-      >
-        {offset >= max ? "↺" : "›"}
-      </button>
-    </div>
-  );
-}
 
 // ── Search bar ────────────────────────────────────────────────────────────
 
@@ -400,14 +329,7 @@ export default function Home() {
             {/* PWA install prompt */}
             <InstallBanner />
 
-            <div style={{ marginBottom: 32 }}>
-              <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-3)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 10 }}>
-                How it works
-              </div>
-              <HowToGuide />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14 }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14, paddingTop: 32 }}>
               <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>✍️</div>
               <div>
                 <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Write your first script</h2>
