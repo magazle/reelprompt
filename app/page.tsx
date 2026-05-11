@@ -250,7 +250,7 @@ function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLog
 
 export default function Home() {
   const { scripts, create, save, remove, duplicate } = useScripts();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isPro } = useAuth();
   const [view, setView]                 = useState<View>("list");
   const [activeScript, setActiveScript] = useState<Script | null>(null);
   const [settings, setSettings]         = useState<TeleprompterSettings>(getSettings);
@@ -259,32 +259,18 @@ export default function Home() {
   const [showHowTo, setShowHowTo]       = useState(false);
   const [showWelcome, setShowWelcome]   = useState(false);
 
-  // isPro is true if:
-  // 1. localStorage has reelprompt:pro = "true" (set after magic link confirmed), OR
-  // 2. user is logged in (Supabase session active)
-  // This ensures offline Pro users still get Pro experience
-  const [isPro, setIsPro] = useState<boolean>(() => {
-    try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
-  });
-
-  // Sync isPro with auth state
-  useEffect(() => {
-    if (user) {
-      const storedPro = localStorage.getItem("reelprompt:pro") === "true";
-      if (storedPro) setIsPro(true);
-    }
-  }, [user]);
+  // isPro comes from useAuth — managed there alongside the auth state,
+  // so it updates atomically when onAuthStateChange resolves.
 
   // Show WelcomeModal once after first Pro sign-in
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isPro) return;
     const welcomed = localStorage.getItem("reelprompt:welcomed");
-    const pro = localStorage.getItem("reelprompt:pro") === "true";
-    if (pro && !welcomed) {
+    if (!welcomed) {
       setShowWelcome(true);
       localStorage.setItem("reelprompt:welcomed", "1");
     }
-  }, [user]);
+  }, [user, isPro]);
 
   // Detect ?pro=success redirect from Ko-fi
   useEffect(() => {
@@ -308,9 +294,8 @@ export default function Home() {
   // Nothing to do here except navigate back
   const handleSuccessBack = () => setView("list");
 
-  // Sign out: useAuth handles localStorage cleanup via SIGNED_OUT event
+  // Sign out: useAuth handles localStorage cleanup and isPro via SIGNED_OUT event
   const handleSignOut = () => {
-    setIsPro(false);
     setView("list");
   };
 
