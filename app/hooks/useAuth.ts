@@ -12,6 +12,7 @@ export function useAuth() {
   const [isPro, setIsPro] = useState<boolean>(() => {
     try { return localStorage.getItem("reelprompt:pro") === "true"; } catch { return false; }
   });
+  const [sessionToken, setSessionToken] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     // Fallback: resolve loading within 3s if Supabase is slow
@@ -20,6 +21,7 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       clearTimeout(timeout);
       setUser(data.session?.user ?? null);
+      setSessionToken(data.session?.access_token);
       setLoading(false);
     });
 
@@ -27,6 +29,7 @@ export function useAuth() {
       async (event, session) => {
         const u = session?.user ?? null;
         setUser(u);
+        setSessionToken(session?.access_token);
 
         if (event === "SIGNED_IN" && u?.email) {
           const pendingCode = localStorage.getItem("reelprompt:pending-code");
@@ -94,5 +97,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, loading, isPro, signIn, signOut };
+  return { user, loading, isPro, sessionToken, signIn, signOut };
 }
