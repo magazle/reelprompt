@@ -224,6 +224,177 @@ function SortButton({ sort, onToggle }: { sort: SortOrder; onToggle: () => void 
   );
 }
 
+
+// ── How To Use modal ─────────────────────────────────────────────────────
+
+const HOW_TO_STEPS = {
+  en: [
+    {
+      emoji: "✍️",
+      title: "Write your script",
+      body: "Type or paste your script in the editor. Use the toolbar for bold, italic, colour highlights and bullet lists. Markdown shortcuts work too — try **bold**, *italic*, or # heading.",
+    },
+    {
+      emoji: "⚡",
+      title: "Calibrate your speed",
+      body: "Tap Calibrate in the editor footer, press Start and read your script aloud at your natural pace, then press Done on the last word. ReelPrompt sets the scroll speed to match you automatically.",
+    },
+    {
+      emoji: "🎬",
+      title: "Record",
+      body: "Tap ▶ on any script card to go straight to the teleprompter. A 3-2-1 countdown gives you time to compose yourself, then the script scrolls over your camera preview. The text is never captured in the video.",
+    },
+    {
+      emoji: "💾",
+      title: "Save and share",
+      body: "When you stop recording you get a clean video — no overlay, just you. Download it and upload directly to Instagram, TikTok, YouTube or wherever you publish.",
+    },
+  ],
+  it: [
+    {
+      emoji: "✍️",
+      title: "Scrivi il tuo script",
+      body: "Scrivi o incolla il tuo testo nell'editor. Usa la toolbar per grassetto, corsivo, colori e liste. Funzionano anche le scorciatoie Markdown — prova **grassetto**, *corsivo*, o # titolo.",
+    },
+    {
+      emoji: "⚡",
+      title: "Calibra la velocità",
+      body: "Tocca Calibrate nel footer dell'editor, premi Start e leggi il tuo script ad alta voce al ritmo naturale, poi premi Done sull'ultima parola. ReelPrompt imposta automaticamente la velocità di scorrimento.",
+    },
+    {
+      emoji: "🎬",
+      title: "Registra",
+      body: "Tocca ▶ su qualsiasi script per andare direttamente al teleprompter. Un conto alla rovescia 3-2-1 ti dà il tempo di prepararti, poi lo script scorre sull'anteprima della fotocamera. Il testo non appare mai nel video.",
+    },
+    {
+      emoji: "💾",
+      title: "Salva e condividi",
+      body: "Quando fermi la registrazione ottieni un video pulito — senza overlay, solo tu. Scaricalo e caricalo direttamente su Instagram, TikTok, YouTube o dove pubblichi.",
+    },
+  ],
+};
+
+function HowToModal({ onClose }: { onClose: () => void }) {
+  const [lang, setLang] = useState<"en" | "it">("en");
+  const steps = HOW_TO_STEPS[lang];
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 200,
+        background: "rgba(15,31,20,0.55)", backdropFilter: "blur(4px)",
+        display: "flex", alignItems: "flex-end", justifyContent: "center",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: "var(--surface)", borderRadius: "20px 20px 0 0",
+          borderTop: "1px solid var(--border)",
+          width: "100%", maxWidth: 560,
+          maxHeight: "88dvh", display: "flex", flexDirection: "column",
+          animation: "slide-up 0.3s ease forwards",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Handle */}
+        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px", flexShrink: 0 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--border-2)" }} />
+        </div>
+
+        {/* Header */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "4px 20px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0,
+        }}>
+          <div>
+            <h2 style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>
+              {lang === "en" ? "How to use ReelPrompt" : "Come usare ReelPrompt"}
+            </h2>
+            {/* Language toggle */}
+            <div style={{ display: "flex", gap: 4 }}>
+              {(["en", "it"] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  style={{
+                    padding: "3px 10px", borderRadius: 6, border: "1px solid",
+                    fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 600,
+                    cursor: "pointer", transition: "all 0.15s",
+                    background: lang === l ? "var(--accent)" : "transparent",
+                    color: lang === l ? "white" : "var(--text-3)",
+                    borderColor: lang === l ? "var(--accent)" : "var(--border)",
+                  }}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border)",
+              background: "var(--bg-2)", color: "var(--text-2)", cursor: "pointer",
+              fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Steps — scrollable */}
+        <div style={{ overflowY: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
+          {steps.map((step, i) => (
+            <div
+              key={`${lang}-${i}`}
+              style={{
+                display: "flex", gap: 16, padding: "18px 20px",
+                borderBottom: i < steps.length - 1 ? "1px solid var(--border)" : "none",
+              }}
+            >
+              {/* Step number */}
+              <div style={{ flexShrink: 0 }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: "50%",
+                  background: "var(--accent)", color: "white",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 14, fontWeight: 800, fontFamily: "var(--font-mono)",
+                }}>
+                  {i + 1}
+                </div>
+              </div>
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 18 }}>{step.emoji}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{step.title}</span>
+                </div>
+                <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: 0 }}>
+                  {step.body}
+                </p>
+              </div>
+            </div>
+          ))}
+
+          {/* Footer note */}
+          <div style={{
+            margin: "0 20px 8px", padding: "14px 16px",
+            background: "var(--bg-2)", borderRadius: 12,
+            border: "1px solid var(--border)",
+          }}>
+            <p style={{ fontSize: 12, color: "var(--text-3)", margin: 0, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
+              {lang === "en"
+                ? "💡 Tip: install ReelPrompt on your home screen for fullscreen recording without the browser bar."
+                : "💡 Suggerimento: installa ReelPrompt sulla home screen per registrare a schermo intero senza la barra del browser."}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Footer (hidden on narrow mobile) ─────────────────────────────────────
 
 function Footer() {
@@ -262,6 +433,7 @@ export default function Home() {
   const [settings, setSettings]         = useState<TeleprompterSettings>(getSettings);
   const [query, setQuery]               = useState("");
   const [sort, setSort]                 = useState<SortOrder>("recent");
+  const [showHowTo, setShowHowTo]       = useState(false);
 
   const handleCreate = () => { const s = create(); setActiveScript(s); setView("editor"); };
   const handleEdit   = (s: Script) => { setActiveScript(s); setView("editor"); };
@@ -322,8 +494,23 @@ export default function Home() {
         <div style={scroller}>
           <div style={{ padding: "0 24px 40px", paddingTop: topPad }}>
 
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 28 }}>
-              ReelPrompt
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                ReelPrompt
+              </div>
+              <button
+                onClick={() => setShowHowTo(true)}
+                title="How to use"
+                style={{
+                  width: 38, height: 38, borderRadius: 12,
+                  background: "var(--surface)", border: "1px solid var(--border-2)",
+                  color: "var(--text-2)", fontSize: 15, fontWeight: 700,
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "var(--font-display)",
+                }}
+              >
+                ?
+              </button>
             </div>
 
             {/* PWA install prompt */}
@@ -344,6 +531,7 @@ export default function Home() {
           </div>
         </div>
         <Footer />
+        {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
       </div>
     );
   }
@@ -368,9 +556,24 @@ export default function Home() {
                 </span>
               </div>
             </div>
-            <button className="btn btn-primary" style={{ borderRadius: 14, flexShrink: 0 }} onClick={handleCreate}>
-              <IconPlus /> New
-            </button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+              <button
+                onClick={() => setShowHowTo(true)}
+                title="How to use"
+                style={{
+                  width: 38, height: 38, borderRadius: 12,
+                  background: "var(--surface)", border: "1px solid var(--border-2)",
+                  color: "var(--text-2)", fontSize: 15, fontWeight: 700,
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "var(--font-display)",
+                }}
+              >
+                ?
+              </button>
+              <button className="btn btn-primary" style={{ borderRadius: 14 }} onClick={handleCreate}>
+                <IconPlus /> New
+              </button>
+            </div>
           </div>
 
           {/* PWA install prompt */}
@@ -415,6 +618,7 @@ export default function Home() {
         </div>
       </div>
       <Footer />
+      {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
     </div>
   );
 }
