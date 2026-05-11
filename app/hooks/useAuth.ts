@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { supabase, checkProUser } from "../lib/supabase";
+import { supabase, checkProUser, SUPABASE_URL, SUPABASE_ANON_KEY } from "../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 
 export function useAuth() {
@@ -52,11 +52,31 @@ export function useAuth() {
     };
   }, []);
 
-  const signIn = (email: string) =>
-    supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: "https://www.reelprompt.xyz" },
-    });
+  // Raw fetch instead of supabase.auth.signInWithOtp — the JS client
+  // occasionally hangs on this call (same issue seen with checkProUser).
+  const signIn = async (email: string): Promise<{ error: Error | null }> => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          create_user: true,
+          options: { emailRedirectTo: "https://www.reelprompt.xyz" },
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        return { error: new Error(body?.msg ?? `HTTP ${res.status}`) };
+      }
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error("Network error") };
+    }
+  };
 
   const signOut = async () => {
     localStorage.removeItem("reelprompt:pro");
