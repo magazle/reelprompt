@@ -41,7 +41,14 @@ function fromRemote(r: RemoteScript): Script {
   };
 }
 
-function authHeaders(token: string) {
+function readHeaders(token: string) {
+  return {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": `Bearer ${token}`,
+  };
+}
+
+function writeHeaders(token: string) {
   return {
     "Content-Type": "application/json",
     "apikey": SUPABASE_ANON_KEY,
@@ -53,7 +60,7 @@ function authHeaders(token: string) {
 async function fetchRemoteScripts(token: string): Promise<Script[]> {
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/scripts?select=id,title,body,created_at,updated_at&order=updated_at.desc`,
-    { headers: authHeaders(token) }
+    { headers: readHeaders(token) }
   );
   if (!res.ok) return [];
   const data: RemoteScript[] = await res.json();
@@ -63,7 +70,7 @@ async function fetchRemoteScripts(token: string): Promise<Script[]> {
 async function upsertRemoteScript(script: Script, userId: string, token: string): Promise<void> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/scripts`, {
     method: "POST",
-    headers: authHeaders(token),
+    headers: writeHeaders(token),
     body: JSON.stringify(toRemote(script, userId)),
   });
   if (!res.ok) {
@@ -75,7 +82,7 @@ async function upsertRemoteScript(script: Script, userId: string, token: string)
 async function deleteRemoteScript(id: string, token: string): Promise<void> {
   await fetch(`${SUPABASE_URL}/rest/v1/scripts?id=eq.${id}`, {
     method: "DELETE",
-    headers: authHeaders(token),
+    headers: writeHeaders(token),
   });
 }
 
