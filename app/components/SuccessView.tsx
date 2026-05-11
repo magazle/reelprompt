@@ -18,31 +18,24 @@ type Step = "code" | "email" | "sent";
 export default function SuccessView({ onBack }: Props) {
   const { signIn } = useAuth();
   const [step, setStep] = useState<Step>("code");
-
-  // Step 1 — code
   const [code, setCode] = useState("");
   const [codeError, setCodeError] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
-
-  // Step 2 — email
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [sendingLink, setSendingLink] = useState(false);
 
-  // Offline check
   const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
 
   const handleValidateCode = async () => {
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) { setCodeError("Enter your activation code."); return; }
     if (trimmed.length < 6) { setCodeError("Code looks too short — check your email."); return; }
-
     setValidatingCode(true);
     setCodeError("");
     const result = await validateProCode(trimmed);
-
     if (result === "ok") {
-      // Store code in sessionStorage — isPro is written only after magic link
+      // Store validated code — isPro written only after magic link click
       sessionStorage.setItem("reelprompt:pending-code", trimmed);
       setStep("email");
     } else {
@@ -55,15 +48,19 @@ export default function SuccessView({ onBack }: Props) {
     const trimmed = email.trim().toLowerCase();
     if (!trimmed || !trimmed.includes("@")) { setEmailError("Enter a valid email address."); return; }
     if (isOffline) { setEmailError("You're offline — connect to the internet to sign in."); return; }
-
     setSendingLink(true);
     setEmailError("");
     const { error } = await signIn(trimmed);
-
     if (error) { setEmailError("Something went wrong — try again."); setSendingLink(false); return; }
     setStep("sent");
     setSendingLink(false);
   };
+
+  const helpLink = (
+    <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 16, fontFamily: "var(--font-mono)" }}>
+      Need help? <a href="/help" style={{ color: "var(--accent)", textDecoration: "none" }}>Visit the Help Desk</a>
+    </p>
+  );
 
   const shell: React.CSSProperties = {
     height: "100dvh", background: "var(--bg)", display: "flex",
@@ -74,7 +71,7 @@ export default function SuccessView({ onBack }: Props) {
     <div style={shell}>
       <div style={{ width: "100%", maxWidth: 400 }}>
 
-        {/* Step 1 — Code */}
+        {/* ── Step 1: Code ── */}
         {step === "code" && (
           <>
             <div style={{ textAlign: "center", marginBottom: 28 }}>
@@ -91,10 +88,10 @@ export default function SuccessView({ onBack }: Props) {
                 Check your email for the code. Usually arrives within 24 hours.
               </p>
               <div style={{ display: "flex", gap: 8 }}>
-                <input type="text" placeholder="REELPRO-XXXXX" value={code}
+                <input
+                  type="text" placeholder="REELPRO-XXXXX" value={code} autoFocus
                   onChange={(e) => { setCode(e.target.value.toUpperCase()); setCodeError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && handleValidateCode()}
-                  autoFocus
                   style={{ flex: 1, background: "var(--bg-2)", border: `1px solid ${codeError ? "#ff3b30" : "var(--border)"}`, borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: 13, padding: "10px 12px", outline: "none", textTransform: "uppercase", transition: "border-color 0.15s" }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = codeError ? "#ff3b30" : "var(--accent)")}
                   onBlur={(e) => (e.currentTarget.style.borderColor = codeError ? "#ff3b30" : "var(--border)")}
@@ -108,20 +105,18 @@ export default function SuccessView({ onBack }: Props) {
             </div>
 
             <button onClick={onBack} className="btn btn-ghost" style={{ width: "100%", fontSize: 13 }}>Back</button>
-            <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 16, fontFamily: "var(--font-mono)" }}>
-              Questions? noreply@leomagazzu.it
-            </p>
+            {helpLink}
           </>
         )}
 
-        {/* Step 2 — Email */}
+        {/* ── Step 2: Email ── */}
         {step === "email" && (
           <>
             <div style={{ textAlign: "center", marginBottom: 28 }}>
               <div style={{ width: 64, height: 64, borderRadius: 18, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 16px", boxShadow: "0 0 32px var(--accent-glow)" }}>✦</div>
               <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 24, letterSpacing: "-0.02em", marginBottom: 8 }}>Code confirmed!</h1>
               <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, fontFamily: "var(--font-mono)" }}>
-                Now enter your email to receive a magic link and activate sync.
+                Now enter your email to activate sync across devices.
               </p>
             </div>
 
@@ -137,10 +132,10 @@ export default function SuccessView({ onBack }: Props) {
                 We'll send a magic link to sign in — no password needed.
               </p>
               <div style={{ display: "flex", gap: 8 }}>
-                <input type="email" placeholder="your@email.com" value={email}
+                <input
+                  type="email" placeholder="your@email.com" value={email} autoFocus
                   onChange={(e) => { setEmail(e.target.value); setEmailError(""); }}
                   onKeyDown={(e) => e.key === "Enter" && handleSendMagicLink()}
-                  autoFocus
                   style={{ flex: 1, background: "var(--bg-2)", border: `1px solid ${emailError ? "#ff3b30" : "var(--border)"}`, borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: 13, padding: "10px 12px", outline: "none", transition: "border-color 0.15s" }}
                   onFocus={(e) => (e.currentTarget.style.borderColor = emailError ? "#ff3b30" : "var(--accent)")}
                   onBlur={(e) => (e.currentTarget.style.borderColor = emailError ? "#ff3b30" : "var(--border)")}
@@ -154,10 +149,11 @@ export default function SuccessView({ onBack }: Props) {
             </div>
 
             <button onClick={() => setStep("code")} className="btn btn-ghost" style={{ width: "100%", fontSize: 13 }}>← Back</button>
+            {helpLink}
           </>
         )}
 
-        {/* Step 3 — Sent */}
+        {/* ── Step 3: Sent ── */}
         {step === "sent" && (
           <div style={{ textAlign: "center" }}>
             <div style={{ width: 64, height: 64, borderRadius: 18, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 20px", boxShadow: "0 0 32px var(--accent-glow)" }}>📬</div>
@@ -165,13 +161,15 @@ export default function SuccessView({ onBack }: Props) {
             <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 8, fontFamily: "var(--font-mono)" }}>
               We sent a magic link to
             </p>
-            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 24 }}>{email}</p>
-            <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6, marginBottom: 28, fontFamily: "var(--font-mono)" }}>
-              Tap the link in the email to sign in and activate Pro. You can close this page.
+            <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 20 }}>{email}</p>
+            <p style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.7, marginBottom: 28, fontFamily: "var(--font-mono)" }}>
+              Tap the link in the email to sign in and activate Pro.<br />
+              You can close this page — your progress is saved.
             </p>
             <button onClick={onBack} className="btn btn-ghost" style={{ width: "100%", fontSize: 13 }}>
               Back to my scripts
             </button>
+            {helpLink}
           </div>
         )}
 

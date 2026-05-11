@@ -1,20 +1,11 @@
 "use client";
-import { useState } from "react";
-import { validateProCode } from "../lib/supabase";
 
 const KO_FI_URL = "https://ko-fi.com/s/e02564e7cc";
 
 interface Props {
   isPro: boolean;
   onBack: () => void;
-  onActivate: () => void;
 }
-
-const ERROR_MESSAGES = {
-  invalid: "Code not found — double-check your email.",
-  already_used: "This code has already been used.",
-  error: "Something went wrong — try again in a moment.",
-};
 
 const CHECK = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
@@ -38,26 +29,7 @@ const FEATURES_PRO = [
   "All future Pro features",
 ];
 
-export default function PricingView({ isPro, onBack, onActivate }: Props) {
-  const [key, setKey] = useState("");
-  const [keyError, setKeyError] = useState("");
-  const [activating, setActivating] = useState(false);
-
-  const handleActivate = async () => {
-    const trimmed = key.trim();
-    if (!trimmed) { setKeyError("Enter your activation code."); return; }
-    if (trimmed.length < 6) { setKeyError("Code looks too short — check your email."); return; }
-    setActivating(true);
-    setKeyError("");
-    const result = await validateProCode(trimmed);
-    if (result === "ok") {
-      onActivate();
-    } else {
-      setKeyError(ERROR_MESSAGES[result]);
-    }
-    setActivating(false);
-  };
-
+export default function PricingView({ isPro, onBack }: Props) {
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
@@ -121,7 +93,9 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
                   <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "var(--font-display)", color: "var(--accent)" }}>€3+</div>
                 </div>
               </div>
-              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Pay what you feel is fair — €3 minimum.</p>
+              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
+                Pay what you feel is fair — €3 minimum.
+              </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 9, marginBottom: 20 }}>
                 {FEATURES_PRO.map((f) => (
                   <div key={f} style={{ display: "flex", alignItems: "center", gap: 9, fontSize: 13, color: "var(--text-2)" }}>{CHECK} {f}</div>
@@ -133,13 +107,19 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
                 Support ReelPrompt ✦
               </a>
+              <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 12, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
+                After purchase you'll receive an activation code by email.<br />
+                <a href="/help#pro" style={{ color: "var(--accent)", textDecoration: "none" }}>How does activation work?</a>
+              </p>
             </div>
 
-            {/* Ko-fi donate — only for Pro users */}
+            {/* Ko-fi donate — Pro users only */}
             {isPro && (
               <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>☕ Buy me a coffee</div>
-                <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>You already have Pro. If you love ReelPrompt, a coffee keeps it going — no pressure, no minimum.</p>
+                <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
+                  You already have Pro. If you love ReelPrompt, a coffee keeps it going — no pressure, no minimum.
+                </p>
                 <a href="https://ko-fi.com/s/111eb93270" target="_blank" rel="noopener noreferrer"
                   style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "12px 0", borderRadius: 12, background: "var(--bg-2)", color: "var(--text-2)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, textDecoration: "none", border: "1px solid var(--border-2)", transition: "background 0.15s" }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-3)")}
@@ -148,33 +128,19 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
                 </a>
               </div>
             )}
+
           </div>
 
-          {/* Activation — only for non-Pro */}
+          {/* Already have a code? */}
           {!isPro && (
-            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>Already supported?</div>
-              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>Enter the activation code from your email to unlock Pro.</p>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input type="text" placeholder="REELPRO-XXXXX" value={key}
-                  onChange={(e) => { setKey(e.target.value.toUpperCase()); setKeyError(""); }}
-                  onKeyDown={(e) => e.key === "Enter" && handleActivate()}
-                  style={{ flex: 1, background: "var(--bg-2)", border: `1px solid ${keyError ? "#ff3b30" : "var(--border)"}`, borderRadius: 10, color: "var(--text)", fontFamily: "var(--font-mono)", fontSize: 13, padding: "10px 12px", outline: "none", transition: "border-color 0.15s", textTransform: "uppercase" }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = keyError ? "#ff3b30" : "var(--accent)")}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = keyError ? "#ff3b30" : "var(--border)")}
-                />
-                <button onClick={handleActivate} disabled={activating} className="btn btn-primary"
-                  style={{ padding: "10px 16px", fontSize: 13, borderRadius: 10, flexShrink: 0, opacity: activating ? 0.7 : 1 }}>
-                  {activating ? "..." : "Activate"}
-                </button>
-              </div>
-              {keyError && <p style={{ fontSize: 11, color: "#ff3b30", marginTop: 8, fontFamily: "var(--font-mono)" }}>{keyError}</p>}
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                Already have an activation code?{" "}
+                <a href="/?pro=success" style={{ color: "var(--accent)", textDecoration: "none" }}>Activate here →</a>
+              </p>
             </div>
           )}
 
-          <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 24, lineHeight: 1.6, fontFamily: "var(--font-mono)" }}>
-            After supporting, check your email for the activation code.{"\n"}Usually within 24 hours. Questions? noreply@leomagazzu.it
-          </p>
         </div>
       </div>
     </div>
