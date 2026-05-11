@@ -274,29 +274,31 @@ export default function Home() {
             letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 28,
           }}>ReelPrompt</div>
 
-          {/* Guide — always open, not collapsible */}
-          <HowToGuide collapsible={false} />
-
-          {/* Single CTA */}
+          {/* CTA — always visible at top */}
           <div style={{
-            flex: 1, display: "flex", flexDirection: "column",
-            alignItems: "center", justifyContent: "center",
-            gap: 16, paddingBottom: 40, paddingTop: 32,
+            display: "flex", flexDirection: "column",
+            alignItems: "center", textAlign: "center",
+            gap: 14, paddingTop: 16, paddingBottom: 36,
           }}>
             <div style={{
-              width: 72, height: 72, borderRadius: 18,
+              width: 64, height: 64, borderRadius: 16,
               background: "var(--surface)", border: "1px solid var(--border)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 32,
+              fontSize: 28,
             }}>🎬</div>
-            <h2 style={{ fontSize: 22, fontWeight: 700, textAlign: "center" }}>Ready to record?</h2>
-            <p style={{ fontSize: 15, color: "var(--text-2)", maxWidth: 260, lineHeight: 1.5, textAlign: "center" }}>
-              Create your first script and start recording like a pro.
-            </p>
-            <button className="btn btn-primary" onClick={handleCreate} style={{ marginTop: 4 }}>
+            <div>
+              <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Ready to record?</h2>
+              <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5 }}>
+                Create your first script and start recording like a pro.
+              </p>
+            </div>
+            <button className="btn btn-primary" onClick={handleCreate}>
               <IconPlus /> Create your first script
             </button>
           </div>
+
+          {/* Guide — collapsible */}
+          <HowToGuide collapsible={true} />
         </div>
         <Footer />
       </div>
