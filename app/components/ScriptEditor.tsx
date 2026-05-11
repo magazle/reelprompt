@@ -25,7 +25,7 @@ const COLOURS = [
   { label: "Blue",   value: "#64D2FF" },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────
 
 function htmlToPlain(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -45,102 +45,178 @@ function formatReadTime(secs: number) {
   return `${Math.floor(secs / 60)}m ${secs % 60}s`;
 }
 
-// ── Markdown live transformer ─────────────────────────────────────────────
-// Called on Space and Enter keydown inside the contentEditable.
-// Inspects the current text node for Markdown patterns and transforms them.
+// ── Full Markdown → HTML parser ───────────────────────────────────────────
+// Handles: # h1, ## h2, **bold**, *italic*, - bullet, > blockquote, ---, paragraphs
+
+function parseInline(text: string): string {
+  return text
+    // **bold**
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    // *italic* (not preceded/followed by *)
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, "<em>$1</em>");
+}
+
+function markdownToHtml(md: string): string {
+  const lines  = md.split("\n");
+  const output: string[] = [];
+  let inUl     = false;
+  let inBq     = false;
+  const bqLines: string[] = [];
+
+  const flushBq = () => {
+    if (bqLines.length) {
+      output.push(`<blockquote>${bqLines.map(parseInline).join("<br>")}</blockquote>`);
+      bqLines.length = 0;
+      inBq = false;
+    }
+  };
+
+  const flushUl = () => {
+    if (inUl) { output.push("</ul>"); inUl = false; }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const raw  = lines[i];
+    const line = raw.trimEnd();
+
+    // Horizontal rule
+    if (/^-{3,}$/.test(line.trim())) {
+      flushUl(); flushBq();
+      output.push("<hr>");
+      continue;
+    }
+
+    // H1
+    if (/^# /.test(line)) {
+      flushUl(); flushBq();
+      output.push(`<h1>${parseInline(line.slice(2).trim())}</h1>`);
+      continue;
+    }
+
+    // H2
+    if (/^## /.test(line)) {
+      flushUl(); flushBq();
+      output.push(`<h2>${parseInline(line.slice(3).trim())}</h2>`);
+      continue;
+    }
+
+    // Blockquote
+    if (/^> /.test(line)) {
+      flushUl();
+      inBq = true;
+      bqLines.push(line.slice(2).trim());
+      continue;
+    } else if (inBq) {
+      flushBq();
+    }
+
+    // Bullet list
+    if (/^[-*] /.test(line)) {
+      if (!inUl) { output.push("<ul>"); inUl = true; }
+      output.push(`<li>${parseInline(line.slice(2).trim())}</li>`);
+      continue;
+    } else {
+      flushUl();
+    }
+
+    // Empty line → paragraph break
+    if (line.trim() === "") {
+      output.push("<br>");
+      continue;
+    }
+
+    // Regular paragraph line
+    output.push(`<p>${parseInline(line.trim())}</p>`);
+  }
+
+  flushUl();
+  flushBq();
+
+  return output.join("");
+}
+
+// ── Live Markdown shortcut transformer (keydown) ──────────────────────────
+// Handles inline patterns on Space, block patterns on Space at line start.
+
 function applyMarkdownTransform(e: React.KeyboardEvent<HTMLDivElement>): boolean {
+  if (e.key !== " ") return false;
+
   const sel = window.getSelection();
   if (!sel || !sel.rangeCount) return false;
 
-  const range = sel.getRangeAt(0);
-  const node  = range.startContainer;
+  const range  = sel.getRangeAt(0);
+  const node   = range.startContainer;
   if (node.nodeType !== Node.TEXT_NODE) return false;
 
   const text   = node.textContent ?? "";
   const offset = range.startOffset;
-  // Only look at text before the caret
   const before = text.slice(0, offset);
 
-  // ── Inline patterns (applied on Space) ──
-  if (e.key === " ") {
-    // **bold** → <strong>
-    const boldMatch = before.match(/\*\*(.+)\*\*$/);
-    if (boldMatch) {
-      e.preventDefault();
-      const matched = boldMatch[0];
-      const inner   = boldMatch[1];
-      const start   = offset - matched.length;
-      // Replace the markdown syntax with a bold node + space
-      const r = document.createRange();
-      r.setStart(node, start);
-      r.setEnd(node, offset);
-      r.deleteContents();
-      const strong = document.createElement("strong");
-      strong.textContent = inner;
-      r.insertNode(strong);
-      // Move caret after strong, insert space
-      const space = document.createTextNode(" ");
-      strong.after(space);
-      sel.collapse(space, 1);
-      return true;
-    }
-
-    // *italic* → <em>
-    const italicMatch = before.match(/(?<!\*)\*(?!\*)(.+)(?<!\*)\*(?!\*)$/);
-    if (italicMatch) {
-      e.preventDefault();
-      const matched = italicMatch[0];
-      const inner   = italicMatch[1];
-      const start   = offset - matched.length;
-      const r = document.createRange();
-      r.setStart(node, start);
-      r.setEnd(node, offset);
-      r.deleteContents();
-      const em = document.createElement("em");
-      em.textContent = inner;
-      r.insertNode(em);
-      const space = document.createTextNode(" ");
-      em.after(space);
-      sel.collapse(space, 1);
-      return true;
-    }
+  // **bold**
+  const boldMatch = before.match(/\*\*(.+)\*\*$/);
+  if (boldMatch) {
+    e.preventDefault();
+    const r = document.createRange();
+    r.setStart(node, offset - boldMatch[0].length);
+    r.setEnd(node, offset);
+    r.deleteContents();
+    const el = document.createElement("strong");
+    el.textContent = boldMatch[1];
+    r.insertNode(el);
+    const sp = document.createTextNode(" ");
+    el.after(sp);
+    sel.collapse(sp, 1);
+    return true;
   }
 
-  // ── Block patterns (applied on Space, triggered at start of line) ──
-  if (e.key === " ") {
-    // "- " → bullet list item
-    if (before === "-") {
-      e.preventDefault();
-      // Delete the "-" character
-      const r = document.createRange();
-      r.setStart(node, offset - 1);
-      r.setEnd(node, offset);
-      r.deleteContents();
-      document.execCommand("insertUnorderedList");
-      return true;
-    }
+  // *italic*
+  const italicMatch = before.match(/(?<!\*)\*(?!\*)(.+)(?<!\*)\*(?!\*)$/);
+  if (italicMatch) {
+    e.preventDefault();
+    const r = document.createRange();
+    r.setStart(node, offset - italicMatch[0].length);
+    r.setEnd(node, offset);
+    r.deleteContents();
+    const el = document.createElement("em");
+    el.textContent = italicMatch[1];
+    r.insertNode(el);
+    const sp = document.createTextNode(" ");
+    el.after(sp);
+    sel.collapse(sp, 1);
+    return true;
+  }
 
-    // "# " → H1 (large bold block)
-    if (before === "#") {
-      e.preventDefault();
-      const r = document.createRange();
-      r.setStart(node, offset - 1);
-      r.setEnd(node, offset);
-      r.deleteContents();
-      document.execCommand("formatBlock", false, "h1");
-      return true;
-    }
+  // - bullet (at line start)
+  if (before === "-") {
+    e.preventDefault();
+    const r = document.createRange();
+    r.setStart(node, offset - 1);
+    r.setEnd(node, offset);
+    r.deleteContents();
+    document.execCommand("insertUnorderedList");
+    return true;
+  }
 
-    // "## " → H2
-    if (before === "##") {
-      e.preventDefault();
-      const r = document.createRange();
-      r.setStart(node, offset - 2);
-      r.setEnd(node, offset);
-      r.deleteContents();
-      document.execCommand("formatBlock", false, "h2");
-      return true;
-    }
+  // # h1
+  if (before === "#") {
+    e.preventDefault();
+    const r = document.createRange();
+    r.setStart(node, offset - 1);
+    r.setEnd(node, offset);
+    r.deleteContents();
+    document.execCommand("formatBlock", false, "h1");
+    return true;
+  }
+
+  // ## h2
+  if (before === "##") {
+    e.preventDefault();
+    const r = document.createRange();
+    r.setStart(node, offset - 2);
+    r.setEnd(node, offset);
+    r.deleteContents();
+    document.execCommand("formatBlock", false, "h2");
+    return true;
   }
 
   return false;
@@ -185,8 +261,7 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
-  const plainText = htmlToPlain(script.body);
-  const wordCount = plainText.trim().split(/\s+/).length;
+  const wordCount = htmlToPlain(script.body).trim().split(/\s+/).length;
 
   const handleStart = useCallback(() => {
     setState("running");
@@ -201,9 +276,7 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
     const seconds = (Date.now() - startRef.current) / 1000;
     if (seconds < 2) return;
     const wpm   = Math.round((wordCount / seconds) * 60);
-    const speed = parseFloat(
-      Math.min(10, Math.max(1, ((wpm - 80) / 160) * 9 + 1)).toFixed(1)
-    );
+    const speed = parseFloat(Math.min(10, Math.max(1, ((wpm - 80) / 160) * 9 + 1)).toFixed(1));
     setState("done");
     onCalibrated(wpm, speed);
   }, [wordCount, onCalibrated]);
@@ -213,7 +286,6 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
       position: "absolute", inset: 0, zIndex: 50,
       background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden",
     }}>
-      {/* Header */}
       <div style={{
         display: "flex", alignItems: "center", gap: 12,
         padding: "16px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
@@ -227,74 +299,70 @@ function WPMCalibrator({ script, currentWpm, onCalibrated, onClose }: {
         </div>
         {currentWpm && (
           <div style={{ fontSize: 11, color: "var(--green)", fontFamily: "var(--font-mono)", display: "flex", gap: 4, alignItems: "center" }}>
-            <span>✓</span> {currentWpm} WPM
+            ✓ {currentWpm} WPM
           </div>
         )}
       </div>
 
-      {/* Instructions */}
       <div style={{
-        margin: "16px 20px 0",
-        background: "var(--surface)", border: "1px solid var(--border)",
+        margin: "16px 20px 0", background: "var(--surface)", border: "1px solid var(--border)",
         borderRadius: 12, padding: "12px 16px",
         display: "flex", gap: 12, alignItems: "flex-start", flexShrink: 0,
       }}>
         <span style={{ fontSize: 20 }}>⏱</span>
         <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-          {state === "idle" && <>Press <strong style={{ color: "var(--text)" }}>Start</strong> then read your entire script aloud at your natural pace. Read <strong style={{ color: "var(--text)" }}>the whole script</strong> — the timer needs the full reading to calculate your WPM accurately. Press <strong style={{ color: "var(--text)" }}>Done</strong> when you finish the last word.</>}
-          {state === "running" && <>Keep reading… Press <strong style={{ color: "var(--text)" }}>Done</strong> when you finish <strong style={{ color: "var(--text)" }}>the last word</strong>.</>}
-          {state === "done" && <>Scroll speed has been set automatically. You can fine-tune it in Settings at any time.</>}
+          {state === "idle"    && <>Press <strong style={{ color: "var(--text)" }}>Start</strong> then read your entire script aloud. Read <strong style={{ color: "var(--text)" }}>the whole script</strong> — the timer needs the full reading to be accurate. Press <strong style={{ color: "var(--text)" }}>Done</strong> on the last word.</>}
+          {state === "running" && <>Keep reading… press <strong style={{ color: "var(--text)" }}>Done</strong> on the <strong style={{ color: "var(--text)" }}>last word</strong>.</>}
+          {state === "done"    && <>Speed set automatically. Fine-tune it in Settings anytime.</>}
         </div>
       </div>
 
-      {/* Script text */}
       <div style={{ flex: 1, overflow: "auto", padding: "16px 20px" }}>
         <div
           style={{
             fontSize: 17, lineHeight: 1.8,
             fontFamily: "var(--font-serif)", fontStyle: "italic",
-            color: "var(--text)",
-            opacity: state === "idle" ? 0.6 : 1,
+            color: "var(--text)", opacity: state === "idle" ? 0.6 : 1,
             transition: "opacity 0.3s", wordBreak: "break-word",
           }}
           dangerouslySetInnerHTML={{ __html: script.body }}
         />
       </div>
 
-      {/* Footer */}
       <div style={{
         padding: "16px 20px", borderTop: "1px solid var(--border)",
         background: "var(--bg-2)", flexShrink: 0,
         display: "flex", gap: 12, alignItems: "center",
       }}>
         {state === "running" && (
-          <div style={{
-            fontSize: 28, fontFamily: "var(--font-mono)", fontWeight: 700,
-            color: "var(--accent)", letterSpacing: "0.04em", minWidth: 64,
-          }}>{elapsed}s</div>
+          <div style={{ fontSize: 28, fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--accent)", minWidth: 64 }}>
+            {elapsed}s
+          </div>
         )}
         {state === "idle" && (
-          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleStart}>
-            ▶ Start Reading
-          </button>
+          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleStart}>▶ Start Reading</button>
         )}
         {state === "running" && (
-          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleDone}>
-            ✓ Done — finished reading
-          </button>
+          <button className="btn btn-primary" style={{ flex: 1, fontSize: 15 }} onClick={handleDone}>✓ Done — finished reading</button>
         )}
         {state === "done" && (
           <div style={{ flex: 1, display: "flex", gap: 12 }}>
-            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => { setState("idle"); setElapsed(0); }}>
-              Re-calibrate
-            </button>
-            <button className="btn btn-primary" style={{ flex: 1 }} onClick={onClose}>
-              Done ✓
-            </button>
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => { setState("idle"); setElapsed(0); }}>Re-calibrate</button>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={onClose}>Done ✓</button>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+// ── "MD" parse button icon ────────────────────────────────────────────────
+
+function IconMD() {
+  return (
+    <svg width="18" height="14" viewBox="0 0 18 14" fill="currentColor">
+      <text x="0" y="11" fontSize="11" fontFamily="monospace" fontWeight="700">MD</text>
+    </svg>
   );
 }
 
@@ -311,12 +379,11 @@ export default function ScriptEditor({
   const [isItalic, setIsItalic]         = useState(false);
   const [wordCount, setWordCount]       = useState(countWords(script.body));
 
-  const editorRef      = useRef<HTMLDivElement>(null);
-  const saveTimerRef   = useRef<NodeJS.Timeout | null>(null);
-  const currentScript  = useRef(script);
+  const editorRef     = useRef<HTMLDivElement>(null);
+  const saveTimerRef  = useRef<NodeJS.Timeout | null>(null);
+  const currentScript = useRef(script);
   currentScript.current = script;
 
-  // Inject saved HTML on first mount only
   useEffect(() => {
     if (editorRef.current && script.body) {
       editorRef.current.innerHTML = script.body;
@@ -366,15 +433,49 @@ export default function ScriptEditor({
     handleInput();
   };
 
-  // ── Markdown live detection ──
+  // ── Live shortcut handler ──
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === " " || e.key === "Enter") {
+    if (e.key === " ") {
       const transformed = applyMarkdownTransform(e);
-      if (transformed) {
-        // Give the DOM a tick to settle then save
-        setTimeout(handleInput, 0);
-      }
+      if (transformed) setTimeout(handleInput, 0);
     }
+  }, [handleInput]);
+
+  // ── Paste handler: strip formatting, parse Markdown ──
+  const handlePaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const plain = e.clipboardData.getData("text/plain");
+    if (!plain) return;
+
+    const html = markdownToHtml(plain);
+
+    // Insert parsed HTML at cursor position
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+
+    const frag = document.createDocumentFragment();
+    const div  = document.createElement("div");
+    div.innerHTML = html;
+    while (div.firstChild) frag.appendChild(div.firstChild);
+    range.insertNode(frag);
+
+    // Move caret to end of inserted content
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    setTimeout(handleInput, 0);
+  }, [handleInput]);
+
+  // ── "Parse MD" button: reparse entire editor content ──
+  const handleParseMarkdown = useCallback(() => {
+    if (!editorRef.current) return;
+    // Get plain text (strip existing HTML first to avoid double-parsing)
+    const plain = editorRef.current.innerText;
+    editorRef.current.innerHTML = markdownToHtml(plain);
+    handleInput();
   }, [handleInput]);
 
   const handleStartRecording = () => {
@@ -441,10 +542,10 @@ export default function ScriptEditor({
         padding: "10px 16px", borderBottom: "1px solid var(--border)",
         background: "var(--bg-2)", flexShrink: 0, overflowX: "auto",
       }}>
-        <ToolbarBtn active={isBold} title="Bold (or type **text**)" onClick={() => exec("bold")}>
+        <ToolbarBtn active={isBold} title="Bold (or **text**)" onClick={() => exec("bold")}>
           <IconBold />
         </ToolbarBtn>
-        <ToolbarBtn active={isItalic} title="Italic (or type *text*)" onClick={() => exec("italic")}>
+        <ToolbarBtn active={isItalic} title="Italic (or *text*)" onClick={() => exec("italic")}>
           <IconItalic />
         </ToolbarBtn>
 
@@ -466,24 +567,31 @@ export default function ScriptEditor({
 
         <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 2px" }} />
 
-        <ToolbarBtn title="Bullet list (or type - )" onClick={() => exec("insertUnorderedList")}>
+        <ToolbarBtn title="Bullet list (or - )" onClick={() => exec("insertUnorderedList")}>
           <IconList />
         </ToolbarBtn>
         <ToolbarBtn title="Clear formatting" onClick={() => exec("removeFormat")}>
           <IconEraser />
         </ToolbarBtn>
 
-        {/* Markdown hint */}
+        <div style={{ width: 1, height: 24, background: "var(--border)", flexShrink: 0, margin: "0 2px" }} />
+
+        {/* Parse Markdown button */}
+        <ToolbarBtn title="Parse entire document as Markdown" onClick={handleParseMarkdown}>
+          <IconMD />
+        </ToolbarBtn>
+
+        {/* Markdown cheatsheet hint */}
         <div style={{
           marginLeft: "auto", flexShrink: 0,
           fontSize: 10, color: "var(--text-3)", fontFamily: "var(--font-mono)",
-          letterSpacing: "0.04em", whiteSpace: "nowrap", paddingRight: 4,
+          letterSpacing: "0.03em", whiteSpace: "nowrap", paddingRight: 4,
         }}>
-          **bold** · *italic* · - list · # h1
+          **bold** · *italic* · - list · # h1 · &gt; quote
         </div>
       </div>
 
-      {/* ── RICH TEXT EDITOR ── */}
+      {/* ── EDITOR ── */}
       <div style={{ flex: 1, overflow: "auto", position: "relative" }}>
         <div
           ref={editorRef}
@@ -491,10 +599,11 @@ export default function ScriptEditor({
           suppressContentEditableWarning
           onInput={handleInput}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           onKeyUp={updateToolbarState}
           onMouseUp={updateToolbarState}
           onSelect={updateToolbarState}
-          data-placeholder="Write your script here…&#10;&#10;Markdown works: **bold**, *italic*, - bullet, # heading&#10;Or use the toolbar above."
+          data-placeholder="Write your script here…&#10;&#10;Paste Markdown and it will be formatted automatically.&#10;Type **bold**, *italic*, - bullet, # heading, > quote&#10;Or use the toolbar."
           className="rich-editor"
           style={{
             minHeight: "100%", padding: "20px",
@@ -552,7 +661,7 @@ export default function ScriptEditor({
         </button>
       </div>
 
-      {/* ── WPM CALIBRATOR OVERLAY ── */}
+      {/* ── WPM CALIBRATOR ── */}
       {showCalibrator && hasContent && (
         <WPMCalibrator
           script={{ ...script, body: editorRef.current?.innerHTML ?? script.body }}
@@ -562,7 +671,7 @@ export default function ScriptEditor({
         />
       )}
 
-      {/* ── SETTINGS PANEL ── */}
+      {/* ── SETTINGS ── */}
       {showSettings && (
         <SettingsPanel
           settings={settings}
