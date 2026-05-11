@@ -33,11 +33,6 @@ const GUIDE_STEPS = [
     title: "Save",
     body: "Download the clean video and upload to Instagram, TikTok or YouTube.",
   },
-  {
-    emoji: "📲",
-    title: "Install",
-    body: "iOS: Share → Add to Home Screen.\nAndroid: Chrome menu → Install app.",
-  },
 ];
 
 
@@ -86,11 +81,16 @@ function useInstallPrompt() {
     }
   }, []);
 
-  return { canInstall, isIOS, isStandalone, triggerInstall };
+  // canShowTip covers browsers that support neither beforeinstallprompt (Chrome/Edge)
+  // nor the iOS Safari path — e.g. Brave, Firefox, Samsung Internet.
+  // We show a generic manual tip so the user always has a path to install.
+  const canShowTip = !isStandalone && !canInstall && !isIOS;
+
+  return { canInstall, isIOS, isStandalone, canShowTip, triggerInstall };
 }
 
 function InstallBanner() {
-  const { canInstall, isIOS, isStandalone, triggerInstall } = useInstallPrompt();
+  const { canInstall, isIOS, isStandalone, canShowTip, triggerInstall } = useInstallPrompt();
   const [dismissed, setDismissed] = useState(false);
 
   if (isStandalone || dismissed) return null;
@@ -154,6 +154,32 @@ function InstallBanner() {
           style={{ width: 36, height: 36, borderRadius: 10, fontSize: 16, flexShrink: 0 }}
           title="Dismiss"
         >
+          ✕
+        </button>
+      </div>
+    );
+  }
+
+  if (canShowTip) {
+    return (
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: 12, padding: "11px 14px",
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: 14, marginBottom: 16,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 18 }}>📲</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700 }}>Add to Home Screen</div>
+            <div style={{ fontSize: 11, color: "var(--text-3)" }}>
+              Browser menu → <strong style={{ color: "var(--text-2)" }}>Install app</strong> or <strong style={{ color: "var(--text-2)" }}>Add to Home Screen</strong>
+            </div>
+          </div>
+        </div>
+        <button onClick={() => setDismissed(true)} className="btn btn-icon"
+          style={{ width: 36, height: 36, borderRadius: 10, fontSize: 15, flexShrink: 0 }}
+          title="Dismiss">
           ✕
         </button>
       </div>
