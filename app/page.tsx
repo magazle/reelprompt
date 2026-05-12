@@ -165,6 +165,13 @@ function HowToModal({ onClose }: { onClose: () => void }) {
         {/* scrollable body */}
         <div style={{ overflowY: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
 
+          {/* What is a teleprompter */}
+          <div style={{ padding: "18px 20px", borderBottom: "1px solid var(--border)", background: "var(--bg-2)" }}>
+            <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: 0 }}>
+              A <strong>teleprompter</strong> scrolls your script in front of the camera so you can speak naturally without memorizing lines — the same tool used by news anchors and professional video creators. ReelPrompt brings it to your phone, for free.
+            </p>
+          </div>
+
           {/* Steps */}
           {HOW_TO_STEPS.map((step, i) => (
             <div key={i} style={{ display: "flex", gap: 16, padding: "18px 20px", borderBottom: "1px solid var(--border)" }}>
@@ -217,8 +224,12 @@ function HowToModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
             <a href="https://ko-fi.com/s/e02564e7cc" target="_blank" rel="noopener noreferrer"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "13px 0", borderRadius: 12, background: "var(--accent)", color: "white", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 20 }}>
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "13px 0", borderRadius: 12, background: "var(--accent)", color: "white", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 12 }}>
               Get Pro — €3 lifetime
+            </a>
+            <a href="/help"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "11px 0", borderRadius: 12, background: "var(--bg-2)", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 12, textDecoration: "none", marginBottom: 20 }}>
+              Need help? Visit the Help Desk →
             </a>
           </div>
 
@@ -367,13 +378,33 @@ export default function Home() {
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
 
+  const [showMenu, setShowMenu] = useState(false);
+
+  const hamburgerBtn: React.CSSProperties = { height: 38, width: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "var(--font-display)" };
+
   const headerRight = (
-    <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-      <button onClick={() => setShowHowTo(true)}
-        style={{ height: 38, padding: "0 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>
-        How it works
+    <div style={{ position: "relative", flexShrink: 0 }}>
+      <button onClick={() => setShowMenu((v) => !v)} style={hamburgerBtn} title="Menu">
+        {showMenu ? "✕" : "≡"}
       </button>
-      <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
+      {showMenu && (
+        <>
+          {/* backdrop */}
+          <div style={{ position: "fixed", inset: 0, zIndex: 98 }} onClick={() => setShowMenu(false)} />
+          {/* dropdown */}
+          <div style={{ position: "absolute", top: 46, right: 0, zIndex: 99, background: "var(--surface)", border: "1px solid var(--border-2)", borderRadius: 14, padding: 6, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", animation: "scale-in 0.15s ease forwards", transformOrigin: "top right" }}>
+            <button onClick={() => { setShowHowTo(true); setShowMenu(false); }}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 16 }}>💡</span> How it works
+            </button>
+            <div style={{ height: 1, background: "var(--border)", margin: "4px 6px" }} />
+            <button onClick={() => { handleProButtonClick(); setShowMenu(false); }}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: isPro ? "var(--accent)" : "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 16 }}>✦</span> {isPro ? (user ? "Account" : "Set up sync") : "Go Pro — €3"}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 
@@ -422,12 +453,8 @@ export default function Home() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-              <button onClick={() => setShowHowTo(true)}
-                style={{ height: 38, padding: "0 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>
-                How it works
-              </button>
-              <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
-              <button className="btn btn-primary" style={{ borderRadius: 14 }} onClick={handleCreate}><IconPlus /> New</button>
+              {headerRight}
+              <button className="btn btn-primary" style={{ height: 38, padding: "0 14px", fontSize: 13, borderRadius: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={handleCreate}><IconPlus /> New</button>
             </div>
           </div>
           <InstallBanner />
