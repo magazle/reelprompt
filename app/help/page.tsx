@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ContactForm from "./ContactForm";
+import ScrollUnlock from "./ScrollUnlock";
 
 export const metadata: Metadata = {
   title: "Help — ReelPrompt",
@@ -134,6 +135,7 @@ export default function HelpPage() {
   return (
     <html lang="en" style={{ overflowY: "auto", minHeight: "100vh" }}>
       <body style={{ margin: 0, fontFamily: "Syne, sans-serif", background: "#f9f9f7", color: "#0f1f14", minHeight: "100vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+        <ScrollUnlock />
         <div style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px 80px" }}>
 
           {/* Header */}

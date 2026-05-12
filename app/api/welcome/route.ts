@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "ReelPrompt <noreply@leomagazzu.it>",
+        from: "ReelPrompt <hello@leomagazzu.it>",
         to: email.trim().toLowerCase(),
         subject: "You're now Pro ✦",
         html: `
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
             <div style="border-top: 1px solid #e2e2db; padding-top: 20px;">
               <p style="font-size: 13px; color: #86a892; margin: 0; line-height: 1.6;">
-                Questions or feedback? Reply to this email or use the contact form in the app — we read everything.<br/><br/>
+                Questions or feedback? Use the contact form in the app — we read everything.<br/><br/>
                 Thank you for supporting ReelPrompt. It means a lot.<br/>
                 <strong style="color: #4a6654;">— Leo</strong>
               </p>
