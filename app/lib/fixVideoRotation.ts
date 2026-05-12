@@ -5,86 +5,113 @@
  * on Android Chromium, which incorrectly writes rotation:90 in the tkhd
  * matrix even when the canvas pixels are already portrait-correct.
  *
- * Approach: parse the blob with mp4box.js, zero the tkhd matrix on all
- * video tracks, then serialise back to ArrayBuffer. The media data (mdat)
- * and codec config (avcC) are preserved exactly — no remux, no re-encode.
+ * Approach: binary patch directly on the ArrayBuffer.
+ * - Scan for 'tkhd' box signatures
+ * - Overwrite the 9-element transformation matrix with the identity matrix
+ * - Return the patched blob
  *
- * Note: this does NOT fix fragmented MP4 (fMP4) gallery compatibility.
- * That requires a full remux which risks codec config loss (as proven).
- * Android Gallery compat is handled separately by keeping WebM on Android.
+ * The media data (mdat, avcC, audio) is never touched — the file size stays
+ * identical and the output is always a valid MP4.
  */
 
-import * as MP4Box from "mp4box";
+// tkhd box layout (version 0):
+//   4 bytes  size
+//   4 bytes  'tkhd'
+//   1 byte   version
+//   3 bytes  flags
+//   4 bytes  creation_time
+//   4 bytes  modification_time
+//   4 bytes  track_id
+//   4 bytes  reserved
+//   4 bytes  duration
+//   8 bytes  reserved
+//   2 bytes  layer
+//   2 bytes  alternate_group
+//   2 bytes  volume
+//   2 bytes  reserved
+//  36 bytes  matrix  ← offset 52 from box start
+//   4 bytes  width
+//   4 bytes  height
+//
+// Version 1 uses 8-byte time fields, so matrix is at offset 68.
 
-/** Identity matrix — no rotation, no scale. */
-const IDENTITY_MATRIX = [
+const TKHD_MATRIX_OFFSET_V0 = 52;
+const TKHD_MATRIX_OFFSET_V1 = 68;
+
+/** Identity matrix in 16.16 fixed-point big-endian (ISO 14496-12). */
+const IDENTITY_MATRIX = new Int32Array([
   0x00010000, 0, 0,
   0, 0x00010000, 0,
   0, 0, 0x40000000,
-];
+]);
 
 /**
- * Patches rotation metadata in an MP4 blob.
- * Returns the fixed blob, or the original blob on any error.
- * Non-MP4 blobs are returned as-is.
+ * Finds all occurrences of a 4-byte FourCC in an ArrayBuffer.
+ * Returns array of box-start offsets (the 4-byte size field precedes the FourCC).
+ */
+function findBoxOffsets(view: DataView, fourcc: string): number[] {
+  const [a, b, c, d] = [0, 1, 2, 3].map((i) => fourcc.charCodeAt(i));
+  const offsets: number[] = [];
+
+  for (let i = 0; i < view.byteLength - 8; i++) {
+    if (
+      view.getUint8(i + 4) === a &&
+      view.getUint8(i + 5) === b &&
+      view.getUint8(i + 6) === c &&
+      view.getUint8(i + 7) === d
+    ) {
+      const size = view.getUint32(i, false);
+      // Sanity check: size must be plausible
+      if (size >= 8 && i + size <= view.byteLength) {
+        offsets.push(i);
+      }
+    }
+  }
+  return offsets;
+}
+
+/**
+ * Patches all tkhd boxes in the buffer, zeroing the rotation matrix.
+ * Mutates the buffer in place. Returns the number of boxes patched.
+ */
+function patchTkhdBoxes(buffer: ArrayBuffer): number {
+  const view = new DataView(buffer);
+  const offsets = findBoxOffsets(view, "tkhd");
+  let patched = 0;
+
+  for (const offset of offsets) {
+    const version = view.getUint8(offset + 8);
+    const matrixOffset = offset + (version === 1 ? TKHD_MATRIX_OFFSET_V1 : TKHD_MATRIX_OFFSET_V0);
+
+    if (matrixOffset + 36 > buffer.byteLength) continue; // safety
+
+    for (let i = 0; i < 9; i++) {
+      view.setInt32(matrixOffset + i * 4, IDENTITY_MATRIX[i], false);
+    }
+    patched++;
+  }
+  return patched;
+}
+
+/**
+ * Returns a new Blob with the rotation metadata corrected.
+ * On non-MP4 blobs or any error, returns the original blob unchanged.
  */
 export async function fixVideoBlob(blob: Blob): Promise<Blob> {
   if (!blob.type.includes("mp4")) return blob;
 
   try {
-    const arrayBuffer = await blob.arrayBuffer();
+    const buffer = await blob.arrayBuffer();
+    // Copy so we don't mutate the original
+    const copy = buffer.slice(0);
+    const patched = patchTkhdBoxes(copy);
 
-    // ── Parse ──────────────────────────────────────────────────────────────
-    const file = MP4Box.createFile();
-
-    const ready = new Promise<void>((resolve, reject) => {
-      file.onReady = () => resolve();
-      file.onError = (module: string, message: string) =>
-        reject(new Error(`mp4box ${module}: ${message}`));
-    });
-
-    const buf = arrayBuffer as ArrayBuffer & { fileStart: number };
-    buf.fileStart = 0;
-    file.appendBuffer(buf);
-    file.flush();
-
-    await ready;
-
-    // ── Patch tkhd matrix on all video tracks ──────────────────────────────
-    const moov = (file as unknown as {
-      moov?: {
-        traks?: Array<{
-          tkhd?: { matrix: number[] };
-          mdia?: { hdlr?: { handler?: string } };
-        }>;
-      };
-    }).moov;
-
-    if (!moov?.traks) return blob; // no tracks — nothing to patch
-
-    let patched = false;
-    for (const trak of moov.traks) {
-      if (trak.mdia?.hdlr?.handler === "vide" && trak.tkhd) {
-        trak.tkhd.matrix = [...IDENTITY_MATRIX];
-        patched = true;
-      }
-    }
-
-    if (!patched) return blob; // no video track found — return as-is
-
-    // ── Serialise back ──────────────────────────────────────────────────────
-    const { DataStream } = MP4Box;
-    const stream = new DataStream();
-    (stream as unknown as { isofile: unknown }).isofile = file;
-    file.write(stream as unknown as Parameters<typeof file.write>[0]);
-
-    const outBuffer: ArrayBuffer = stream.buffer as unknown as ArrayBuffer;
-    if (!outBuffer || outBuffer.byteLength < 100) {
-      console.warn("[fixVideoRotation] Output too small, returning original");
+    if (patched === 0) {
+      // No tkhd found — file might be WebM or already clean
       return blob;
     }
 
-    return new Blob([outBuffer], { type: "video/mp4" });
+    return new Blob([copy], { type: blob.type });
   } catch (err) {
     console.error("[fixVideoRotation] Failed, returning original:", err);
     return blob;
