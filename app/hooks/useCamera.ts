@@ -35,7 +35,8 @@ function pickMimeType(): string {
 function startPortraitCanvas(
   videoEl: HTMLVideoElement,
   canvas: HTMLCanvasElement,
-  stream: MediaStream
+  stream: MediaStream,
+  getZoom: () => number
 ): () => void {
   const ctx = canvas.getContext("2d")!;
   canvas.width  = TARGET_W;
@@ -71,6 +72,15 @@ function startPortraitCanvas(
         sh = vw / targetAspect;
         sy = (vh - sh) / 2;
       }
+
+      // Apply zoom: shrink the source crop region (zoom in)
+      const zoom = Math.max(1, getZoom());
+      const zoomedSw = sw / zoom;
+      const zoomedSh = sh / zoom;
+      sx += (sw - zoomedSw) / 2;
+      sy += (sh - zoomedSh) / 2;
+      sw = zoomedSw;
+      sh = zoomedSh;
 
       if (needsSwap) {
         ctx.save();
@@ -158,7 +168,7 @@ export function useCamera() {
    * This guarantees that what the user sees is pixel-identical to what
    * the MediaRecorder encodes — no CSS-vs-canvas crop discrepancy.
    */
-  const initPortraitEncoder = useCallback((videoEl: HTMLVideoElement) => {
+  const initPortraitEncoder = useCallback((videoEl: HTMLVideoElement, getZoom: () => number = () => 1) => {
     videoElRef.current = videoEl;
     encoderReadyRef.current = false;
 
@@ -170,7 +180,7 @@ export function useCamera() {
           const canvas = document.createElement("canvas");
           canvasRef.current = canvas;
 
-          stopCanvasRef.current = startPortraitCanvas(videoEl, canvas, streamRef.current!);
+          stopCanvasRef.current = startPortraitCanvas(videoEl, canvas, streamRef.current!, getZoom);
 
           const canvasStream = canvas.captureStream(30);
           streamRef.current!.getAudioTracks().forEach((t) => canvasStream.addTrack(t));

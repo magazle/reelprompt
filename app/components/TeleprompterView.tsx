@@ -89,7 +89,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
       if (stream && videoElRef.current) {
         videoElRef.current.srcObject = stream;
         // initPortraitEncoder handles its own play/dimension readiness internally
-        camera.initPortraitEncoder(videoElRef.current);
+        camera.initPortraitEncoder(videoElRef.current, () => settings.zoom ?? 1);
       }
     });
     wake.acquire();
@@ -106,7 +106,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
     if (el && camera.streamRef.current) {
       el.srcObject = camera.streamRef.current;
       // initPortraitEncoder handles its own play/dimension readiness internally
-      camera.initPortraitEncoder(el);
+      camera.initPortraitEncoder(el, () => settings.zoom ?? 1);
     }
   }, [camera.streamRef, camera.initPortraitEncoder]);
 
@@ -552,19 +552,32 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
 
               {/* Speed slider */}
               <div style={{
-                display: "flex", alignItems: "center", gap: 12,
+                display: "flex", flexDirection: "column", gap: 8,
                 background: "rgba(0,0,0,0.5)", borderRadius: 20,
                 padding: "10px 20px", backdropFilter: "blur(8px)",
               }}>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-mono)" }}>SPEED</span>
-                <input
-                  type="range" min={1} max={10} step={0.5} value={settings.speed}
-                  onChange={(e) => handleSettingsChange({ ...settings, speed: Number(e.target.value) })}
-                  style={{ width: 120, accentColor: "var(--accent)", height: 3 }}
-                />
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-mono)", width: 24 }}>
-                  {settings.speed}
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-mono)", width: 40 }}>SPEED</span>
+                  <input
+                    type="range" min={1} max={10} step={0.5} value={settings.speed}
+                    onChange={(e) => handleSettingsChange({ ...settings, speed: Number(e.target.value) })}
+                    style={{ width: 120, accentColor: "var(--accent)", height: 3 }}
+                  />
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-mono)", width: 24 }}>
+                    {settings.speed}
+                  </span>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-mono)", width: 40 }}>ZOOM</span>
+                  <input
+                    type="range" min={1} max={3} step={0.1} value={settings.zoom ?? 1}
+                    onChange={(e) => handleSettingsChange({ ...settings, zoom: Number(e.target.value) })}
+                    style={{ width: 120, accentColor: "var(--accent)", height: 3 }}
+                  />
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-mono)", width: 24 }}>
+                    {(settings.zoom ?? 1).toFixed(1)}x
+                  </span>
+                </div>
               </div>
             </div>
           </div>
