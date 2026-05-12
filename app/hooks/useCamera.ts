@@ -7,7 +7,7 @@ export type RecordingState = "idle" | "recording" | "paused" | "done" | "fixing"
 // ── Debug mode ────────────────────────────────────────────────────────────
 // Set to true to show camera info overlay in TeleprompterView.
 // Disable before shipping to production.
-export const DEBUG_MODE = true;
+export const DEBUG_MODE = false;
 
 const TARGET_W = 1080;
 const TARGET_H = 1920;
