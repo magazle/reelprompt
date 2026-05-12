@@ -222,7 +222,7 @@ export default function PricingView({ isPro, onBack, onActivate }: Props) {
           </div>
 
           <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 24, lineHeight: 1.6, fontFamily: "var(--font-mono)" }}>
-            Questions? <a href="mailto:noreply@leomagazzu.it" style={{ color: "var(--accent)", textDecoration: "none" }}>noreply@leomagazzu.it</a>
+            Questions? <a href="/help" style={{ color: "var(--accent)", textDecoration: "none" }}>Visit the Help Desk</a>
           </p>
 
         </div>

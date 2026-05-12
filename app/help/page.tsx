@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ContactForm from "./ContactForm";
 
 export const metadata: Metadata = {
   title: "Help — ReelPrompt",
@@ -79,7 +80,7 @@ const sections = [
       },
       {
         q: "I paid but haven't received my activation code.",
-        a: "Check your spam folder first. If it's not there after 24 hours, contact us at noreply@leomagazzu.it with your Ko-fi order confirmation and we'll sort it out immediately.",
+        a: "Check your spam folder first. If it's not there after 24 hours, use the contact form below with your Ko-fi order confirmation and we'll sort it out immediately.",
       },
       {
         q: "Can I change my email address?",
@@ -101,7 +102,7 @@ const sections = [
       },
       {
         q: "How do I delete my account and data?",
-        a: "Send us a message via the Contact & Feedback form in your profile, or email privacy@leomagazzu.it. We will delete your email, scripts and settings from our servers within 30 days.",
+        a: "Send us a message via the contact form below or the Contact & Feedback form in your profile. We will delete your email, scripts and settings from our servers within 30 days.",
       },
     ],
   },
@@ -142,8 +143,7 @@ export default function HelpPage() {
             </div>
             <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8 }}>Help Desk</h1>
             <p style={{ fontSize: 14, color: "#4a6654", lineHeight: 1.6, margin: 0 }}>
-              Everything you need to know about ReelPrompt. Can't find your answer?{" "}
-              <a href="mailto:noreply@leomagazzu.it" style={{ color: "#16a34a" }}>Email us</a>.
+              Everything you need to know about ReelPrompt. Can't find your answer? Use the contact form at the bottom of this page.
             </p>
           </div>
 
@@ -173,6 +173,18 @@ export default function HelpPage() {
               </div>
             </div>
           ))}
+
+          {/* Contact form */}
+          <div style={{ marginTop: 48, padding: "28px", background: "#ffffff", border: "1px solid #e2e2db", borderRadius: 16 }}>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 20, marginBottom: 6 }}>📬</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#0f1f14", marginBottom: 6 }}>Still need help?</div>
+              <p style={{ fontSize: 14, color: "#4a6654", lineHeight: 1.6, margin: 0 }}>
+                Send us a message and we'll get back to you as soon as possible.
+              </p>
+            </div>
+            <ContactForm />
+          </div>
 
           {/* Footer */}
           <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid #e2e2db", display: "flex", alignItems: "center", justifyContent: "space-between" }}>

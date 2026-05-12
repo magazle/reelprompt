@@ -109,7 +109,7 @@ export default function SuccessView({ onBack }: Props) {
 
             <button onClick={onBack} className="btn btn-ghost" style={{ width: "100%", fontSize: 13 }}>Back</button>
             <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", marginTop: 16, fontFamily: "var(--font-mono)" }}>
-              Questions? noreply@leomagazzu.it
+              Questions? <a href="/help" style={{ color: "var(--accent)", textDecoration: "none" }}>Visit the Help Desk</a>
             </p>
           </>
         )}

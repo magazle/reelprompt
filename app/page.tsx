@@ -393,12 +393,12 @@ export default function Home() {
           <div style={{ position: "fixed", inset: 0, zIndex: 98 }} onClick={() => setShowMenu(false)} />
           {/* dropdown */}
           <div style={{ position: "absolute", top: 46, right: 0, zIndex: 99, background: "var(--surface)", border: "1px solid var(--border-2)", borderRadius: 14, padding: 6, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", animation: "scale-in 0.15s ease forwards", transformOrigin: "top right" }}>
-            <button onClick={() => { setShowHowTo(true); setShowMenu(false); }}
+            <button onClick={() => { setShowMenu(false); setTimeout(() => setShowHowTo(true), 50); }}
               style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 16 }}>💡</span> How it works
             </button>
             <div style={{ height: 1, background: "var(--border)", margin: "4px 6px" }} />
-            <button onClick={() => { handleProButtonClick(); setShowMenu(false); }}
+            <button onClick={() => { setShowMenu(false); setTimeout(handleProButtonClick, 50); }}
               style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: isPro ? "var(--accent)" : "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 16 }}>✦</span> {isPro ? (user ? "Account" : "Set up sync") : "Go Pro — €3"}
             </button>
