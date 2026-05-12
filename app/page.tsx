@@ -322,7 +322,17 @@ export default function Home() {
     }
   }, []);
 
-  const handleCreate = () => { const s = create(); setActiveScript(s); setView("editor"); };
+  const FREE_SCRIPT_LIMIT = 3;
+
+  const handleCreate = () => {
+    if (!isPro && scripts.length >= FREE_SCRIPT_LIMIT) {
+      setView("pricing");
+      return;
+    }
+    const s = create();
+    setActiveScript(s);
+    setView("editor");
+  };
   const handleEdit   = (s: Script) => { setActiveScript(s); setView("editor"); };
   const handleSave   = (s: Script) => { const u = save(s); setActiveScript(u); return u; };
   const handleRecord = useCallback((s: Script) => { setActiveScript(s); setView("teleprompter"); }, []);
@@ -453,10 +463,18 @@ export default function Home() {
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
               {headerRight}
-              <button className="btn btn-primary" style={{ height: 38, padding: "0 14px", fontSize: 13, borderRadius: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={handleCreate}><IconPlus /> New</button>
+              <button className="btn btn-primary" style={{ height: 38, padding: "0 14px", fontSize: 13, borderRadius: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={handleCreate}>
+                <IconPlus /> {!isPro && scripts.length >= FREE_SCRIPT_LIMIT ? "Upgrade" : "New"}
+              </button>
             </div>
           </div>
           <InstallBanner />
+          {!isPro && scripts.length >= FREE_SCRIPT_LIMIT && (
+            <div onClick={() => setView("pricing")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 12, background: "rgba(22,163,74,0.06)", border: "1px solid rgba(22,163,74,0.2)", marginBottom: 12, cursor: "pointer" }}>
+              <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, fontFamily: "var(--font-mono)" }}>✦ You've reached the 3-script free limit.</p>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-mono)", whiteSpace: "nowrap", marginLeft: 12 }}>Go Pro →</span>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
             <div style={{ flex: 1 }}><SearchBar value={query} onChange={setQuery} /></div>
             {isPro && user && (
