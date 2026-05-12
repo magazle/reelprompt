@@ -21,7 +21,15 @@ const sections = [
       },
       {
         q: "How do I install ReelPrompt on my home screen?",
-        a: "On iOS Safari: tap the Share button → Add to Home Screen. On Android Chrome: tap the three-dot menu → Install app. Once installed, ReelPrompt runs fullscreen without the browser bar.",
+        a: "On iOS Safari: tap the Share button (the square with an arrow) → Add to Home Screen. On Android Chrome: tap the three-dot menu → Install app. Once installed, ReelPrompt runs fullscreen without the browser bar — this also improves camera performance.",
+      },
+      {
+        q: "What is the difference between using ReelPrompt in the browser vs installed?",
+        a: "When installed as a PWA, ReelPrompt runs fullscreen with no browser bar, behaves more like a native app, and has better access to camera and screen wake lock. We recommend installing it for the best experience.",
+      },
+      {
+        q: "I can only create 3 scripts. Why?",
+        a: "The free plan includes up to 3 scripts. To create unlimited scripts, upgrade to Pro — it's a one-time payment of €3. Tap Go Pro in the header to get started.",
       },
     ],
   },
@@ -42,8 +50,16 @@ const sections = [
         a: "Open a script, tap Calibrate in the editor footer, press Start, and read the script aloud at your natural pace. Press Done on the last word. ReelPrompt calculates your WPM and sets the scroll speed automatically.",
       },
       {
+        q: "Can I adjust the speed while recording?",
+        a: "Yes. During recording, open the Settings panel and drag the Speed slider to adjust in real time. The script continues scrolling while you adjust.",
+      },
+      {
         q: "How do I save the recorded video?",
         a: "When you stop recording, ReelPrompt offers three save methods automatically: on mobile it opens the OS share sheet (save to Gallery, Drive, AirDrop etc.), on desktop Chrome it opens a native Save As dialog, and as a fallback it triggers a direct download.",
+      },
+      {
+        q: "The video didn't save or the download didn't start.",
+        a: "This can happen if the browser blocked the download or the recording was too short. Try stopping the recording after at least 2 seconds. If the issue persists, make sure you're using an up-to-date version of Chrome or Safari.",
       },
       {
         q: "Can I mirror the text or video?",
@@ -57,19 +73,23 @@ const sections = [
     items: [
       {
         q: "What is ReelPrompt Pro?",
-        a: "Pro gives you script sync across all your devices — write on your laptop, record on your phone. It is a one-time payment of €3 or more (pay what you feel is fair). No subscription, no expiry.",
+        a: "Pro gives you unlimited scripts and sync across all your devices — write on your laptop, record on your phone. It is a one-time payment of €3. No subscription, no expiry.",
       },
       {
         q: "How do I activate Pro?",
-        a: "Tap Go Pro in the header, then Support ReelPrompt on Ko-fi with €3 or more. After your payment you will receive an activation code by email within 24 hours. Enter the code in the app, then enter your email to receive a magic link. Click the link to complete activation.",
+        a: "Tap Go Pro in the header → Support ReelPrompt on Ko-fi with €3 or more. After payment you'll receive an activation code by email. Enter the code in the app, then enter your email to receive a magic link. Click the link to complete activation.",
       },
       {
         q: "What is a magic link?",
         a: "A magic link is a secure one-time sign-in link sent to your email — no password needed. Click it and you are signed in automatically. It works on any browser and any device.",
       },
       {
+        q: "I clicked the magic link but it opened in the browser, not in the app.",
+        a: "This is expected behaviour on iOS and Android — email clients always open links in the browser. Once the browser confirms you're signed in, simply switch back to the ReelPrompt app (or PWA) on your home screen. Your Pro status will be active immediately.",
+      },
+      {
         q: "Can I use Pro on multiple devices?",
-        a: "Yes. Sign in with the same email on any device by going to your profile and requesting a new magic link. Your scripts will sync automatically once you are signed in.",
+        a: "Yes. On each new device, tap Go Pro → Already registered, enter your email and request a new magic link. After clicking the link, switch back to the ReelPrompt app — you'll be signed in and your scripts will sync automatically.",
       },
       {
         q: "Does Pro work offline?",
@@ -81,11 +101,37 @@ const sections = [
       },
       {
         q: "I paid but haven't received my activation code.",
-        a: "Check your spam folder first. If it's not there after 24 hours, use the contact form below with your Ko-fi order confirmation and we'll sort it out immediately.",
+        a: "Check your spam folder first. Codes are usually delivered within a few minutes. If it's not there after 24 hours, use the contact form below with your Ko-fi order confirmation and we'll sort it out immediately.",
+      },
+      {
+        q: "I lost access to my email. Can I still use Pro?",
+        a: "Yes. Contact us via the form below with your Ko-fi order confirmation and we'll transfer your Pro status to a new email address.",
       },
       {
         q: "Can I change my email address?",
-        a: "Yes. Go to your profile → Contact & Feedback and send us a message with your current and new email address. We'll update it manually and send a new magic link to your new address.",
+        a: "Yes. Use the Contact & Feedback form in your profile and send us your current and new email address. We'll update it manually and send a new magic link to the new address.",
+      },
+    ],
+  },
+  {
+    emoji: "📝",
+    title: "Scripts & sync",
+    items: [
+      {
+        q: "How do I recover a deleted script?",
+        a: "Deleted scripts are moved to an archive, not permanently removed. Go to your profile (the circle button in the header) → scroll down to Deleted scripts. From there you can restore any script to your list, or permanently delete it.",
+      },
+      {
+        q: "My scripts aren't syncing across devices.",
+        a: "Make sure you are signed in with the same email on both devices. If you are signed in, tap the ↻ sync button on the home screen to force a manual sync. Scripts merge by last-edited date — the most recently edited version always wins.",
+      },
+      {
+        q: "I deleted a script on one device but it reappeared on another.",
+        a: "If you deleted the script before updating to the latest version of ReelPrompt, the deletion may not have propagated correctly. Delete the script again — it now uses a soft delete system that syncs correctly across all devices.",
+      },
+      {
+        q: "I lost my scripts after clearing browser data.",
+        a: "Free users store scripts in localStorage, which is cleared when you clear browser data or cookies. Pro users can recover their scripts by signing back in — scripts are synced to the cloud and restored automatically.",
       },
     ],
   },
@@ -113,19 +159,23 @@ const sections = [
     items: [
       {
         q: "The camera isn't working.",
-        a: "Make sure you have granted camera permission to your browser. On iOS, go to Settings → Safari → Camera. On Android, go to Settings → Apps → Chrome → Permissions. Then reload the page.",
+        a: "Make sure you have granted camera permission to your browser. On iOS, go to Settings → Safari → Camera and set it to Allow. On Android, go to Settings → Apps → Chrome → Permissions → Camera. Then reload the page. If you're using the installed PWA, the permission follows the browser you used to install it.",
+      },
+      {
+        q: "The screen turns off while I'm recording.",
+        a: "ReelPrompt uses the Wake Lock API to keep the screen on during recording. This is supported on Chrome and most modern browsers. If your screen still turns off, make sure you are using an up-to-date version of Chrome and that battery saver mode is not active.",
       },
       {
         q: "The scroll speed feels off even after calibration.",
-        a: "You can fine-tune speed manually in the teleprompter settings panel. Drag the Speed slider while the script is scrolling to adjust in real time.",
+        a: "You can fine-tune speed manually in the teleprompter settings panel. Drag the Speed slider while the script is scrolling to adjust in real time. If your reading pace varies a lot, try calibrating on a short paragraph at your most natural speed.",
       },
       {
         q: "The video saved in landscape instead of portrait.",
-        a: "ReelPrompt re-encodes the video to 9:16 portrait using a canvas encoder. On some older Android browsers this may not work correctly. Try updating your browser to the latest version.",
+        a: "ReelPrompt re-encodes the video to 9:16 portrait using a canvas encoder. On some older Android browsers this may not work correctly. Try updating your browser to the latest version, or use Chrome.",
       },
       {
-        q: "I lost my scripts after clearing browser data.",
-        a: "Free users store scripts in localStorage, which is cleared when you clear browser data. Pro users can recover their scripts by signing back in — scripts are synced to the cloud.",
+        q: "The app feels slow or laggy.",
+        a: "Try installing ReelPrompt as a PWA from your home screen — it runs faster than in the browser. Also make sure no other apps are heavily using the camera in the background.",
       },
     ],
   },
