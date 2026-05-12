@@ -116,5 +116,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // Delete a code from pro_codes
+  if (action === "delete_code") {
+    const code = (body.code as string | undefined)?.trim().toUpperCase();
+    if (!code) return NextResponse.json({ error: "No code" }, { status: 400 });
+    const res = await sbFetch(`/pro_codes?code=eq.${encodeURIComponent(code)}`, {
+      method: "DELETE",
+      headers: { Prefer: "return=minimal" },
+    });
+    if (!res.ok) return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });
 }
+
+// NOTE: add this block inside the POST handler before the final "Unknown action" return:
+// if (action === "delete_code") { ... }
