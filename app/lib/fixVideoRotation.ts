@@ -23,14 +23,11 @@
  * and is a separate concern; on Android we now force MP4).
  */
 
-// mp4box.js is loaded lazily to avoid adding weight to the initial bundle.
-// It is only needed after a recording stops.
-let mp4boxModule: typeof import("mp4box") | null = null;
+// Static import — Turbopack (Next.js 16) doesn't resolve dynamic imports
+// of CJS packages reliably. mp4box is only called client-side after recording.
+import * as mp4boxModule from "mp4box";
 
 async function getMp4box() {
-  if (!mp4boxModule) {
-    mp4boxModule = await import("mp4box");
-  }
   return mp4boxModule;
 }
 

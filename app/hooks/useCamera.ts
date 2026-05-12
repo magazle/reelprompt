@@ -283,38 +283,8 @@ export function useCamera() {
     const ext      = mimeTypeRef.current.includes("mp4") ? "mp4" : "webm";
     const fullName = `${filename}.${ext}`;
 
-    // 1. Web Share API — mobile: OS share sheet (gallery, Drive, AirDrop…)
-    if (navigator.canShare) {
-      const file = new File([lastBlob], fullName, { type: lastBlob.type });
-      if (navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file], title: filename });
-          return;
-        } catch (err) {
-          if ((err as Error).name === "AbortError") return;
-        }
-      }
-    }
-
-    // 2. File System Access API — desktop Chrome/Edge: native Save As dialog
-    if ("showSaveFilePicker" in window) {
-      try {
-        const handle = await (window as Window & {
-          showSaveFilePicker: (opts: unknown) => Promise<FileSystemFileHandle>
-        }).showSaveFilePicker({
-          suggestedName: fullName,
-          types: [{ description: "Video file", accept: { [lastBlob.type]: [`.${ext}`] } }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(lastBlob);
-        await writable.close();
-        return;
-      } catch (err) {
-        if ((err as Error).name === "AbortError") return;
-      }
-    }
-
-    // 3. <a download> fallback
+    // Direct download via <a> — works on both desktop and mobile.
+    // No Share API, no FilePicker — user always gets the file in Downloads.
     const url = URL.createObjectURL(lastBlob);
     const a   = document.createElement("a");
     a.href = url; a.download = fullName; a.click();
