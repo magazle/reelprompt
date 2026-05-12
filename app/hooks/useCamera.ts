@@ -62,6 +62,7 @@ function startPortraitCanvas(
       const targetAspect = TARGET_W / TARGET_H; // 0.5625 — portrait 9:16
       const srcAspect    = vw / vh;
 
+      // Base crop: fit 9:16 into the source frame, centred
       let sx = 0, sy = 0, sw = vw, sh = vh;
       if (srcAspect > targetAspect) {
         // Source wider than 9:16 → crop sides
@@ -73,15 +74,13 @@ function startPortraitCanvas(
         sy = (vh - sh) / 2;
       }
 
-      // Apply zoom: > 1.0 zooms in (smaller crop), < 1.0 zooms out (larger crop).
-      // Clamp so we never exceed the actual source dimensions.
-      const zoom = Math.min(Math.max(0.1, getZoom()), 4.0);
-      const zoomedSw = Math.min(sw / zoom, vw);
-      const zoomedSh = Math.min(sh / zoom, vh);
+      // Zoom in only (1.0 = full crop, 2.0 = half crop = 2x zoom).
+      // Values < 1 are clamped to 1 — no zoom-out, no distortion.
+      const zoom = Math.min(Math.max(1.0, getZoom()), 4.0);
+      const zoomedSw = sw / zoom;
+      const zoomedSh = sh / zoom;
       sx += (sw - zoomedSw) / 2;
       sy += (sh - zoomedSh) / 2;
-      sx = Math.max(0, sx);
-      sy = Math.max(0, sy);
       sw = zoomedSw;
       sh = zoomedSh;
 
@@ -89,11 +88,7 @@ function startPortraitCanvas(
         ctx.save();
         ctx.translate(TARGET_W / 2, TARGET_H / 2);
         ctx.rotate(Math.PI / 2);
-        ctx.drawImage(
-          videoEl,
-          sy, sx, sh, sw,
-          -TARGET_H / 2, -TARGET_W / 2, TARGET_H, TARGET_W
-        );
+        ctx.drawImage(videoEl, sy, sx, sh, sw, -TARGET_H / 2, -TARGET_W / 2, TARGET_H, TARGET_W);
         ctx.restore();
       } else {
         ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, TARGET_W, TARGET_H);

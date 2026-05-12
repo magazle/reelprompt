@@ -19,7 +19,7 @@ export interface TeleprompterSettings {
   fontStyle: "serif" | "sans";
   textStroke: boolean;
   wpm: number | null;                       // null = not calibrated
-  zoom: number;                             // 0.5–2.0: <1 zoom out, >1 zoom in, default 1.0
+  zoom: number;                             // 1.0–2.0: zoom in only, default 1.0
 }
 
 export const DEFAULT_SETTINGS: TeleprompterSettings = {
