@@ -153,6 +153,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
   const isRecording = camera.recordingState === "recording";
   const isPaused    = camera.recordingState === "paused";
   const isDone      = camera.recordingState === "done";
+  const isFixing    = camera.recordingState === "fixing";
   const isIdle      = camera.recordingState === "idle";
 
   const justifyContent =
@@ -202,14 +203,35 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
           }} />
         </div>
 
-        {/* Camera preview */}
+        {/* Hidden video element — feeds the canvas encoder, never shown to user */}
+        <video ref={attachVideo} autoPlay playsInline muted style={{ display: "none" }} />
+
+        {/* Canvas preview — pixel-identical to what gets recorded.
+            We replace the content of this wrapper div with camera.canvasRef.current
+            so the user sees exactly the same pixels the MediaRecorder encodes. */}
         {camera.hasPermission !== false && (
-          <video ref={attachVideo} autoPlay playsInline muted style={{
-            position: "absolute", inset: 0, width: "100%", height: "100%",
-            objectFit: "cover",
-            transform: settings.mirrorVideo ? "scaleX(-1)" : "none",
-            zIndex: 0,
-          }} />
+          <div
+            ref={(wrapper) => {
+              if (!wrapper) return;
+              // Poll until the canvas encoder is ready, then move the canvas into DOM.
+              // This is safe to call on every render because we guard with firstChild check.
+              const attach = () => {
+                const canvas = camera.canvasRef.current;
+                if (!canvas) { requestAnimationFrame(attach); return; }
+                if (wrapper.firstChild === canvas) return; // already attached
+                // Apply CSS so it fills the 9:16 container
+                canvas.style.cssText = [
+                  "position:absolute", "inset:0", "width:100%", "height:100%",
+                  `transform:${settings.mirrorVideo ? "scaleX(-1)" : "none"}`,
+                  "zIndex:0", "object-fit:cover",
+                ].join(";");
+                wrapper.innerHTML = "";
+                wrapper.appendChild(canvas);
+              };
+              attach();
+            }}
+            style={{ position: "absolute", inset: 0, zIndex: 0 }}
+          />
         )}
 
         {/* No permission state */}
@@ -229,7 +251,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
         )}
 
         {/* Dark overlay for "full" text background mode */}
-        {settings.textBackground === "full" && !isDone && (
+        {settings.textBackground === "full" && !isDone && !isFixing && (
           <div style={{
             position: "absolute", inset: 0, zIndex: 5,
             background: "rgba(0,0,0,0.45)", pointerEvents: "none",
@@ -254,7 +276,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
         )}
 
         {/* Teleprompter text */}
-        {!isDone && countdown === null && (
+        {!isDone && !isFixing && countdown === null && (
           <div style={{
             position: "absolute", inset: 0, zIndex: 10, pointerEvents: "none",
             display: "flex", flexDirection: "column", justifyContent,
@@ -310,6 +332,30 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
           </div>
         )}
 
+        {/* Fixing / remuxing screen — shown while mp4box repairs the video */}
+        {isFixing && (
+          <div style={{
+            position: "absolute", inset: 0, zIndex: 20,
+            background: "rgba(0,0,0,0.92)",
+            display: "flex", flexDirection: "column",
+            alignItems: "center", justifyContent: "center",
+            padding: 32, gap: 20,
+          }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: "50%",
+              border: "3px solid rgba(255,255,255,0.15)",
+              borderTop: "3px solid white",
+              animation: "spin 0.8s linear infinite",
+            }} />
+            <p style={{ fontSize: 16, fontWeight: 600, textAlign: "center" }}>
+              Optimising video…
+            </p>
+            <p style={{ fontSize: 13, color: "var(--text-2)", textAlign: "center" }}>
+              Fixing compatibility for Android gallery
+            </p>
+          </div>
+        )}
+
         {/* Done / export screen */}
         {isDone && (
           <div style={{
@@ -356,7 +402,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
         )}
 
         {/* Controls overlay */}
-        {!isDone && (
+        {!isDone && !isFixing && (
           <div
             style={{
               position: "absolute", inset: 0, zIndex: 30,
