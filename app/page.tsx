@@ -142,44 +142,32 @@ function SortButton({ sort, onToggle }: { sort: SortOrder; onToggle: () => void 
 
 // ── How To Use modal ─────────────────────────────────────────────────────
 
-const HOW_TO_STEPS = {
-  en: [
-    { emoji: "✍️", title: "Write your script", body: "Type or paste your script in the editor. Use the toolbar for bold, italic, colour highlights and bullet lists. Markdown shortcuts work too — try **bold**, *italic*, or # heading." },
-    { emoji: "⚡", title: "Calibrate your speed", body: "Tap Calibrate in the editor footer, press Start and read your script aloud at your natural pace, then press Done on the last word. ReelPrompt sets the scroll speed to match you automatically." },
-    { emoji: "🎬", title: "Record", body: "Tap ▶ on any script card to go straight to the teleprompter. A 3-2-1 countdown gives you time to compose yourself, then the script scrolls over your camera preview. The text is never captured in the video." },
-    { emoji: "💾", title: "Save and share", body: "When you stop recording you get a clean video — no overlay, just you. Download it and upload directly to Instagram, TikTok, YouTube or wherever you publish." },
-  ],
-  it: [
-    { emoji: "✍️", title: "Scrivi il tuo script", body: "Scrivi o incolla il tuo testo nell'editor. Usa la toolbar per grassetto, corsivo, colori e liste. Funzionano anche le scorciatoie Markdown — prova **grassetto**, *corsivo*, o # titolo." },
-    { emoji: "⚡", title: "Calibra la velocità", body: "Tocca Calibrate nel footer dell'editor, premi Start e leggi il tuo script ad alta voce al ritmo naturale, poi premi Done sull'ultima parola. ReelPrompt imposta automaticamente la velocità di scorrimento." },
-    { emoji: "🎬", title: "Registra", body: "Tocca ▶ su qualsiasi script per andare direttamente al teleprompter. Un conto alla rovescia 3-2-1 ti dà il tempo di prepararti, poi lo script scorre sull'anteprima della fotocamera. Il testo non appare mai nel video." },
-    { emoji: "💾", title: "Salva e condividi", body: "Quando fermi la registrazione ottieni un video pulito — senza overlay, solo tu. Scaricalo e caricalo direttamente su Instagram, TikTok, YouTube o dove pubblichi." },
-  ],
-};
+const HOW_TO_STEPS = [
+  { emoji: "✍️", title: "Write your script", body: "Type or paste your script in the editor. Use the toolbar for bold, italic, colour highlights and bullet lists." },
+  { emoji: "⚡", title: "Calibrate your speed", body: "Tap Calibrate in the editor footer, press Start and read aloud at your natural pace, then press Done. ReelPrompt sets the scroll speed automatically." },
+  { emoji: "🎬", title: "Record", body: "Tap ▶ on any script card to open the teleprompter. A 3-2-1 countdown gives you time to compose yourself — the script scrolls over your camera preview. The text is never captured in the video." },
+  { emoji: "💾", title: "Save and share", body: "When you stop recording you get a clean video — no overlay, just you. Download it and upload directly to Instagram, TikTok, YouTube or wherever you publish." },
+];
 
 function HowToModal({ onClose }: { onClose: () => void }) {
-  const [lang, setLang] = useState<"en" | "it">("en");
-  const steps = HOW_TO_STEPS[lang];
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(15,31,20,0.55)", backdropFilter: "blur(4px)", display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
-      <div style={{ background: "var(--surface)", borderRadius: "20px 20px 0 0", borderTop: "1px solid var(--border)", width: "100%", maxWidth: 560, maxHeight: "88dvh", display: "flex", flexDirection: "column", animation: "slide-up 0.3s ease forwards" }} onClick={(e) => e.stopPropagation()}>
+      <div style={{ background: "var(--surface)", borderRadius: "20px 20px 0 0", borderTop: "1px solid var(--border)", width: "100%", maxWidth: 560, maxHeight: "92dvh", display: "flex", flexDirection: "column", animation: "slide-up 0.3s ease forwards" }} onClick={(e) => e.stopPropagation()}>
+        {/* drag handle */}
         <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px", flexShrink: 0 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--border-2)" }} />
         </div>
+        {/* header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 20px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-          <div>
-            <h2 style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>{lang === "en" ? "How to use ReelPrompt" : "Come usare ReelPrompt"}</h2>
-            <div style={{ display: "flex", gap: 4 }}>
-              {(["en", "it"] as const).map((l) => (
-                <button key={l} onClick={() => setLang(l)} style={{ padding: "3px 10px", borderRadius: 6, border: "1px solid", fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 600, cursor: "pointer", transition: "all 0.15s", background: lang === l ? "var(--accent)" : "transparent", color: lang === l ? "white" : "var(--text-3)", borderColor: lang === l ? "var(--accent)" : "var(--border)" }}>{l.toUpperCase()}</button>
-              ))}
-            </div>
-          </div>
+          <h2 style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", margin: 0 }}>How it works</h2>
           <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-2)", color: "var(--text-2)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
+        {/* scrollable body */}
         <div style={{ overflowY: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
-          {steps.map((step, i) => (
-            <div key={`${lang}-${i}`} style={{ display: "flex", gap: 16, padding: "18px 20px", borderBottom: i < steps.length - 1 ? "1px solid var(--border)" : "none" }}>
+
+          {/* Steps */}
+          {HOW_TO_STEPS.map((step, i) => (
+            <div key={i} style={{ display: "flex", gap: 16, padding: "18px 20px", borderBottom: "1px solid var(--border)" }}>
               <div style={{ flexShrink: 0 }}>
                 <div style={{ width: 34, height: 34, borderRadius: "50%", background: "var(--accent)", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, fontFamily: "var(--font-mono)" }}>{i + 1}</div>
               </div>
@@ -192,11 +180,48 @@ function HowToModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           ))}
-          <div style={{ margin: "0 20px 8px", padding: "14px 16px", background: "var(--bg-2)", borderRadius: 12, border: "1px solid var(--border)" }}>
+
+          {/* Install tip */}
+          <div style={{ margin: "16px 20px 0", padding: "14px 16px", background: "var(--bg-2)", borderRadius: 12, border: "1px solid var(--border)" }}>
             <p style={{ fontSize: 12, color: "var(--text-3)", margin: 0, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-              {lang === "en" ? "💡 Tip: install ReelPrompt on your home screen for fullscreen recording without the browser bar." : "💡 Suggerimento: installa ReelPrompt sulla home screen per registrare a schermo intero senza la barra del browser."}
+              💡 Tip: install ReelPrompt on your home screen for fullscreen recording without the browser bar.
             </p>
           </div>
+
+          {/* Pricing */}
+          <div style={{ padding: "20px 20px 0" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Free vs Pro</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+              {/* Free */}
+              <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Free</div>
+                {["3 scripts", "Teleprompter", "Camera recording", "Calibration"].map((f) => (
+                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+                    <span style={{ color: "var(--accent)", fontSize: 12, fontWeight: 700 }}>✓</span>
+                    <span style={{ fontSize: 12, color: "var(--text-2)" }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+              {/* Pro */}
+              <div style={{ background: "var(--surface)", border: "2px solid var(--accent)", borderRadius: 14, padding: "16px", boxShadow: "0 0 20px var(--accent-glow)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800 }}>✦ Pro</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent)" }}>€3 lifetime</div>
+                </div>
+                {["Unlimited scripts", "Teleprompter", "Camera recording", "Calibration", "Sync across devices"].map((f) => (
+                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
+                    <span style={{ color: "var(--accent)", fontSize: 12, fontWeight: 700 }}>✓</span>
+                    <span style={{ fontSize: 12, color: "var(--text-2)" }}>{f}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <a href="https://ko-fi.com/s/e02564e7cc" target="_blank" rel="noopener noreferrer"
+              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "13px 0", borderRadius: 12, background: "var(--accent)", color: "white", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 20 }}>
+              Get Pro — €3 lifetime
+            </a>
+          </div>
+
         </div>
       </div>
     </div>
@@ -344,9 +369,9 @@ export default function Home() {
 
   const headerRight = (
     <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-      <button onClick={() => setShowHowTo(true)} title="How to use"
-        style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
-        ?
+      <button onClick={() => setShowHowTo(true)}
+        style={{ height: 38, padding: "0 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>
+        How it works
       </button>
       <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
     </div>
@@ -397,9 +422,9 @@ export default function Home() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-              <button onClick={() => setShowHowTo(true)} title="How to use"
-                style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-display)" }}>
-                ?
+              <button onClick={() => setShowHowTo(true)}
+                style={{ height: 38, padding: "0 14px", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", fontFamily: "var(--font-display)", whiteSpace: "nowrap" }}>
+                How it works
               </button>
               <HeaderProButton isPro={isPro} isLoggedIn={!!user} onClick={handleProButtonClick} />
               <button className="btn btn-primary" style={{ borderRadius: 14 }} onClick={handleCreate}><IconPlus /> New</button>
