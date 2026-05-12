@@ -297,6 +297,7 @@ export default function Home() {
   const [sort, setSort]                 = useState<SortOrder>("recent");
   const [showHowTo, setShowHowTo]       = useState(false);
   const [showWelcome, setShowWelcome]   = useState(false);
+  const [showMenu, setShowMenu]         = useState(false);
 
   // isPro comes from useAuth — managed there alongside the auth state,
   // so it updates atomically when onAuthStateChange resolves.
@@ -377,8 +378,6 @@ export default function Home() {
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
-
-  const [showMenu, setShowMenu] = useState(false);
 
   const hamburgerBtn: React.CSSProperties = { height: 38, width: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "var(--font-display)" };
 
