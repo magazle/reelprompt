@@ -53,17 +53,8 @@ function startPortraitCanvas(
   const trackW           = settings.width  ?? videoEl.videoWidth;
   const trackH           = settings.height ?? videoEl.videoHeight;
   const trackIsLandscape = trackW > trackH;
-
-  // The video element is display:none so clientHeight/clientWidth are both 0.
-  // Instead we detect mobile by checking if the canvas target is portrait
-  // (which it always is — 1080×1920) and the track is landscape.
-  // On desktop the webcam also gives landscape, but after the 9:16 crop
-  // the result is correct without swap — we distinguish via aspect ratio:
-  // a selfie cam at 1440×1080 (4:3) on a portrait device needs swap,
-  // a webcam at 1280×720 (16:9) on desktop does not need swap.
-  // Heuristic: if track is landscape AND not already close to 16:9, swap.
-  const trackAspect = trackW / trackH;
-  const needsSwap   = trackIsLandscape && trackAspect < 2.0; // 4:3 ≈ 1.33, 16:9 ≈ 1.78
+  const previewIsPortrait = videoEl.clientHeight > videoEl.clientWidth;
+  const needsSwap        = trackIsLandscape && previewIsPortrait;
 
   let rafId = 0;
 
