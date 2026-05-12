@@ -1,58 +1,37 @@
 /**
  * fixVideoRotation.ts
  *
- * Patches the rotation metadata in an MP4 blob produced by MediaRecorder
- * on Android Chromium, which incorrectly writes rotation:90 in the tkhd
- * matrix even when the canvas pixels are already portrait-correct.
+ * Two-stage post-processing for MP4 blobs from MediaRecorder on Android:
  *
- * Approach: binary patch directly on the ArrayBuffer.
- * - Scan for 'tkhd' box signatures
- * - Overwrite the 9-element transformation matrix with the identity matrix
- * - Return the patched blob
+ * Stage 1 — Binary rotation patch (instant, zero deps):
+ *   Scans the ArrayBuffer for tkhd boxes and overwrites the transformation
+ *   matrix with the identity matrix. Fixes the rotation:90 metadata that
+ *   Android Chromium writes even when canvas pixels are portrait-correct.
  *
- * The media data (mdat, avcC, audio) is never touched — the file size stays
- * identical and the output is always a valid MP4.
+ * Stage 2 — FFmpeg.wasm remux (async, ~2-5s, fixes gallery/WhatsApp compat):
+ *   MediaRecorder on Android produces fragmented MP4 (fMP4). Players like
+ *   Android Gallery and WhatsApp expect a standard MP4 with moov before mdat.
+ *   FFmpeg remuxes the container without re-encoding (copy codec), producing
+ *   a universally compatible MP4.
+ *
+ * FFmpeg core is loaded from unpkg CDN on first use and cached by the browser.
+ * Single-thread build is used (no SharedArrayBuffer requirement).
  */
 
-// tkhd box layout (version 0):
-//   4 bytes  size
-//   4 bytes  'tkhd'
-//   1 byte   version
-//   3 bytes  flags
-//   4 bytes  creation_time
-//   4 bytes  modification_time
-//   4 bytes  track_id
-//   4 bytes  reserved
-//   4 bytes  duration
-//   8 bytes  reserved
-//   2 bytes  layer
-//   2 bytes  alternate_group
-//   2 bytes  volume
-//   2 bytes  reserved
-//  36 bytes  matrix  ← offset 52 from box start
-//   4 bytes  width
-//   4 bytes  height
-//
-// Version 1 uses 8-byte time fields, so matrix is at offset 68.
+// ── Stage 1: binary tkhd patch ────────────────────────────────────────────
 
 const TKHD_MATRIX_OFFSET_V0 = 52;
 const TKHD_MATRIX_OFFSET_V1 = 68;
 
-/** Identity matrix in 16.16 fixed-point big-endian (ISO 14496-12). */
 const IDENTITY_MATRIX = new Int32Array([
   0x00010000, 0, 0,
   0, 0x00010000, 0,
   0, 0, 0x40000000,
 ]);
 
-/**
- * Finds all occurrences of a 4-byte FourCC in an ArrayBuffer.
- * Returns array of box-start offsets (the 4-byte size field precedes the FourCC).
- */
 function findBoxOffsets(view: DataView, fourcc: string): number[] {
   const [a, b, c, d] = [0, 1, 2, 3].map((i) => fourcc.charCodeAt(i));
   const offsets: number[] = [];
-
   for (let i = 0; i < view.byteLength - 8; i++) {
     if (
       view.getUint8(i + 4) === a &&
@@ -61,59 +40,106 @@ function findBoxOffsets(view: DataView, fourcc: string): number[] {
       view.getUint8(i + 7) === d
     ) {
       const size = view.getUint32(i, false);
-      // Sanity check: size must be plausible
-      if (size >= 8 && i + size <= view.byteLength) {
-        offsets.push(i);
-      }
+      if (size >= 8 && i + size <= view.byteLength) offsets.push(i);
     }
   }
   return offsets;
 }
 
-/**
- * Patches all tkhd boxes in the buffer, zeroing the rotation matrix.
- * Mutates the buffer in place. Returns the number of boxes patched.
- */
-function patchTkhdBoxes(buffer: ArrayBuffer): number {
-  const view = new DataView(buffer);
-  const offsets = findBoxOffsets(view, "tkhd");
-  let patched = 0;
-
-  for (const offset of offsets) {
+function patchTkhdRotation(buffer: ArrayBuffer): ArrayBuffer {
+  const copy = buffer.slice(0);
+  const view = new DataView(copy);
+  for (const offset of findBoxOffsets(view, "tkhd")) {
     const version = view.getUint8(offset + 8);
     const matrixOffset = offset + (version === 1 ? TKHD_MATRIX_OFFSET_V1 : TKHD_MATRIX_OFFSET_V0);
-
-    if (matrixOffset + 36 > buffer.byteLength) continue; // safety
-
+    if (matrixOffset + 36 > copy.byteLength) continue;
     for (let i = 0; i < 9; i++) {
       view.setInt32(matrixOffset + i * 4, IDENTITY_MATRIX[i], false);
     }
-    patched++;
   }
-  return patched;
+  return copy;
 }
 
+// ── Stage 2: FFmpeg.wasm remux ────────────────────────────────────────────
+
+// Lazy singleton — loaded once, reused across calls
+let ffmpegInstance: import("@ffmpeg/ffmpeg").FFmpeg | null = null;
+let ffmpegLoading: Promise<import("@ffmpeg/ffmpeg").FFmpeg> | null = null;
+
+async function getFFmpeg(): Promise<import("@ffmpeg/ffmpeg").FFmpeg> {
+  if (ffmpegInstance?.loaded) return ffmpegInstance;
+  if (ffmpegLoading) return ffmpegLoading;
+
+  ffmpegLoading = (async () => {
+    const { FFmpeg } = await import("@ffmpeg/ffmpeg");
+    const { fetchFile } = await import("@ffmpeg/util");
+    void fetchFile; // imported for side effects / tree-shake safety
+
+    const ff = new FFmpeg();
+    // Single-thread core — no SharedArrayBuffer required, works on all origins
+    await ff.load({
+      coreURL: "https://unpkg.com/@ffmpeg/core@0.12.9/dist/umd/ffmpeg-core.js",
+      wasmURL: "https://unpkg.com/@ffmpeg/core@0.12.9/dist/umd/ffmpeg-core.wasm",
+    });
+    ffmpegInstance = ff;
+    return ff;
+  })();
+
+  return ffmpegLoading;
+}
+
+async function remuxWithFFmpeg(buffer: ArrayBuffer): Promise<ArrayBuffer> {
+  const { fetchFile } = await import("@ffmpeg/util");
+  const ff = await getFFmpeg();
+
+  const inputData = await fetchFile(new Blob([buffer], { type: "video/mp4" }));
+  await ff.writeFile("input.mp4", inputData);
+
+  // -c copy: no re-encode, just remux
+  // -movflags +faststart: puts moov before mdat (required for streaming/WhatsApp)
+  const ret = await ff.exec([
+    "-i", "input.mp4",
+    "-c", "copy",
+    "-movflags", "+faststart",
+    "output.mp4",
+  ]);
+
+  if (ret !== 0) throw new Error(`FFmpeg exited with code ${ret}`);
+
+  const data = await ff.readFile("output.mp4") as Uint8Array;
+  await ff.deleteFile("input.mp4");
+  await ff.deleteFile("output.mp4");
+
+  return data.buffer as ArrayBuffer;
+}
+
+// ── Public API ────────────────────────────────────────────────────────────
+
 /**
- * Returns a new Blob with the rotation metadata corrected.
- * On non-MP4 blobs or any error, returns the original blob unchanged.
+ * Fixes rotation metadata and remuxes the MP4 to standard container format.
+ * Returns the fixed blob. On any error returns the original blob unchanged.
  */
 export async function fixVideoBlob(blob: Blob): Promise<Blob> {
   if (!blob.type.includes("mp4")) return blob;
 
   try {
-    const buffer = await blob.arrayBuffer();
-    // Copy so we don't mutate the original
-    const copy = buffer.slice(0);
-    const patched = patchTkhdBoxes(copy);
+    const raw = await blob.arrayBuffer();
 
-    if (patched === 0) {
-      // No tkhd found — file might be WebM or already clean
-      return blob;
-    }
+    // Stage 1: patch rotation metadata (instant)
+    const rotationFixed = patchTkhdRotation(raw);
 
-    return new Blob([copy], { type: blob.type });
+    // Stage 2: remux via FFmpeg (fixes gallery/WhatsApp compat)
+    const remuxed = await remuxWithFFmpeg(rotationFixed);
+
+    return new Blob([remuxed], { type: "video/mp4" });
   } catch (err) {
     console.error("[fixVideoRotation] Failed, returning original:", err);
-    return blob;
+    // Still try to return at least the rotation-fixed version
+    try {
+      const raw = await blob.arrayBuffer();
+      return new Blob([patchTkhdRotation(raw)], { type: "video/mp4" });
+    } catch {
+      return blob;
+    }
   }
 }
