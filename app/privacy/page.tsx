@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import ScrollUnlock from "./ScrollUnlock";
 
 export const metadata: Metadata = {
   title: "Privacy Policy — ReelPrompt",
@@ -12,7 +13,8 @@ export default function PrivacyPage() {
   return (
     <html lang="en" style={{ overflowY: "scroll" }}>
       <body style={{ margin: 0, fontFamily: "Syne, sans-serif", background: "#f9f9f7", color: "#0f1f14" }}>
-        <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 24px 80px" }}>
+        <ScrollUnlock />
+        <div className="page-scrollable" style={{ maxWidth: 640, margin: "0 auto", padding: "48px 24px 80px" }}>
 
           <div style={{ marginBottom: 32 }}>
             <div style={{ fontSize: 11, color: "#16a34a", fontFamily: "DM Mono, monospace", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
