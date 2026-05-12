@@ -46,9 +46,18 @@ function startPortraitCanvas(
 ): () => void {
   const ctx = canvas.getContext("2d")!;
 
-  // Always draw portrait canvas — WebM on Android doesn't add rotation metadata
-  canvas.width  = TARGET_W; // 1080
-  canvas.height = TARGET_H; // 1920
+  const isAndroid = /android/i.test(navigator.userAgent);
+
+  if (isAndroid) {
+    // Brave/Chromium Android adds rotation:90 metadata to both MP4 and WebM.
+    // Pre-rotate the canvas -90deg (landscape 1920x1080) so the metadata
+    // rotation cancels out and the player shows correct portrait.
+    canvas.width  = TARGET_H; // 1920
+    canvas.height = TARGET_W; // 1080
+  } else {
+    canvas.width  = TARGET_W; // 1080
+    canvas.height = TARGET_H; // 1920
+  }
 
   const track            = stream.getVideoTracks()[0];
   const settings         = track?.getSettings() ?? {};
@@ -56,7 +65,7 @@ function startPortraitCanvas(
   const trackH           = settings.height ?? videoEl.videoHeight;
   const trackIsLandscape = trackW > trackH;
   const previewIsPortrait = videoEl.clientHeight > videoEl.clientWidth;
-  const needsSwap = trackIsLandscape && previewIsPortrait;
+  const needsSwap = !isAndroid && trackIsLandscape && previewIsPortrait;
 
   let rafId = 0;
 
@@ -67,26 +76,46 @@ function startPortraitCanvas(
     if (vw > 0 && vh > 0) {
       if (needsSwap) { [vw, vh] = [vh, vw]; }
 
-      const targetAspect = TARGET_W / TARGET_H;
-      const srcAspect    = vw / vh;
+      if (isAndroid) {
+        const targetAspect = TARGET_W / TARGET_H;
+        const srcAspect    = vw / vh;
 
-      let sx = 0, sy = 0, sw = vw, sh = vh;
-      if (srcAspect > targetAspect) {
-        sw = vh * targetAspect;
-        sx = (vw - sw) / 2;
-      } else {
-        sh = vw / targetAspect;
-        sy = (vh - sh) / 2;
-      }
+        let sx = 0, sy = 0, sw = vw, sh = vh;
+        if (srcAspect > targetAspect) {
+          sw = vh * targetAspect;
+          sx = (vw - sw) / 2;
+        } else {
+          sh = vw / targetAspect;
+          sy = (vh - sh) / 2;
+        }
 
-      if (needsSwap) {
         ctx.save();
-        ctx.translate(TARGET_W / 2, TARGET_H / 2);
-        ctx.rotate(Math.PI / 2);
-        ctx.drawImage(videoEl, sy, sx, sh, sw, -TARGET_H / 2, -TARGET_W / 2, TARGET_H, TARGET_W);
+        ctx.translate(TARGET_H / 2, TARGET_W / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.drawImage(videoEl, sx, sy, sw, sh, -TARGET_W / 2, -TARGET_H / 2, TARGET_W, TARGET_H);
         ctx.restore();
       } else {
-        ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, TARGET_W, TARGET_H);
+        const targetAspect = TARGET_W / TARGET_H;
+        const srcAspect    = vw / vh;
+
+        let sx = 0, sy = 0, sw = vw, sh = vh;
+        if (srcAspect > targetAspect) {
+          sw = vh * targetAspect;
+          sx = (vw - sw) / 2;
+        } else {
+          sh = vw / targetAspect;
+          sy = (vh - sh) / 2;
+        }
+
+        if (needsSwap) {
+          ctx.save();
+          ctx.translate(TARGET_W / 2, TARGET_H / 2);
+          ctx.rotate(Math.PI / 2);
+          ctx.drawImage(videoEl, sy, sx, sh, sw, -TARGET_H / 2, -TARGET_W / 2, TARGET_H, TARGET_W);
+          ctx.restore();
+        } else {
+          ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, TARGET_W, TARGET_H);
+        }
       }
     }
     rafId = requestAnimationFrame(draw);
