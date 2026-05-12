@@ -8,6 +8,22 @@ const SETTINGS_KEY = "reelprompt:settings";
 export function getScripts(): Script[] {
   try {
     const raw = localStorage.getItem(SCRIPTS_KEY);
+    const all: Script[] = raw ? JSON.parse(raw) : [];
+    return all.filter((s) => !s.deletedAt);
+  } catch { return []; }
+}
+
+export function getDeletedScripts(): Script[] {
+  try {
+    const raw = localStorage.getItem(SCRIPTS_KEY);
+    const all: Script[] = raw ? JSON.parse(raw) : [];
+    return all.filter((s) => !!s.deletedAt).sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
+  } catch { return []; }
+}
+
+export function getAllScripts(): Script[] {
+  try {
+    const raw = localStorage.getItem(SCRIPTS_KEY);
     return raw ? JSON.parse(raw) : [];
   } catch { return []; }
 }
@@ -36,9 +52,29 @@ export function createScript(): Script {
   };
 }
 
-/** Delete a script by id */
+/** Soft-delete a script (sets deletedAt, keeps the record) */
 export function deleteScript(id: string): void {
-  saveScripts(getScripts().filter((s) => s.id !== id));
+  const all = getAllScripts();
+  const idx = all.findIndex((s) => s.id === id);
+  if (idx >= 0) all[idx] = { ...all[idx], deletedAt: Date.now(), updatedAt: Date.now() };
+  saveScripts(all);
+}
+
+/** Restore a soft-deleted script */
+export function restoreScript(id: string): void {
+  const all = getAllScripts();
+  const idx = all.findIndex((s) => s.id === id);
+  if (idx >= 0) {
+    const { deletedAt, ...rest } = all[idx];
+    void deletedAt;
+    all[idx] = { ...rest, updatedAt: Date.now() };
+  }
+  saveScripts(all);
+}
+
+/** Permanently remove a script from localStorage */
+export function permanentDeleteScript(id: string): void {
+  saveScripts(getAllScripts().filter((s) => s.id !== id));
 }
 
 /** Duplicate a script and return the copy (does NOT persist — caller must saveScript) */

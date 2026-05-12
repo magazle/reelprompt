@@ -7,11 +7,18 @@ const KO_FI_DONATE_URL = "https://ko-fi.com/s/111eb93270";
 interface Props {
   onBack: () => void;
   onSignOut: () => void;
+  deletedScripts: import("../lib/types").Script[];
+  onRestore: (id: string) => void;
+  onPermanentDelete: (id: string) => void;
 }
 
 type FormState = "idle" | "sending" | "sent" | "error";
 
-export default function AccountView({ onBack, onSignOut }: Props) {
+function fmtDate(ts: number) {
+  return new Date(ts).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+export default function AccountView({ onBack, onSignOut, deletedScripts, onRestore, onPermanentDelete }: Props) {
   const { user, signOut, signIn } = useAuth();
   const [message, setMessage] = useState("");
   const [formState, setFormState] = useState<FormState>("idle");
@@ -186,6 +193,40 @@ export default function AccountView({ onBack, onSignOut }: Props) {
               </>
             )}
           </div>
+
+          {/* Deleted scripts */}
+          {deletedScripts.length > 0 && (
+            <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px", marginBottom: 14 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>🗑 Deleted scripts</div>
+              <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
+                Restore or permanently delete scripts you've trashed.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column" }}>
+                {deletedScripts.map((s) => (
+                  <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-2)" }}>
+                        {s.title || "Untitled"}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: 2 }}>
+                        Deleted {fmtDate(s.deletedAt!)}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => onRestore(s.id)}
+                        style={{ fontSize: 11, fontFamily: "var(--font-mono)", background: "rgba(22,163,74,0.1)", color: "var(--accent)", border: "1px solid rgba(22,163,74,0.2)", borderRadius: 8, padding: "4px 10px", cursor: "pointer" }}>
+                        Restore
+                      </button>
+                      <button onClick={() => onPermanentDelete(s.id)}
+                        style={{ fontSize: 11, fontFamily: "var(--font-mono)", background: "rgba(255,59,48,0.08)", color: "#ff3b30", border: "1px solid rgba(255,59,48,0.2)", borderRadius: 8, padding: "4px 10px", cursor: "pointer" }}>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Sign out — always visible for Pro users */}
           <button onClick={handleSignOut} className="btn btn-ghost"

@@ -286,7 +286,7 @@ function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLog
 
 export default function Home() {
   const { user, loading: authLoading, isPro, sessionToken } = useAuth();
-  const { scripts, syncing, syncNow, create, save, remove, duplicate } = useScripts(
+  const { scripts, deletedScripts, syncing, syncNow, create, save, remove, restore, permanentRemove, duplicate } = useScripts(
     user?.id,
     sessionToken,
   );
@@ -357,7 +357,7 @@ export default function Home() {
   // ── Views ─────────────────────────────────────────────────────────────────
 
   if (view === "account") {
-    return <AccountView onBack={() => setView("list")} onSignOut={handleSignOut} />;
+    return <AccountView onBack={() => setView("list")} onSignOut={handleSignOut} deletedScripts={deletedScripts} onRestore={restore} onPermanentDelete={permanentRemove} />;
   }
   if (view === "success") {
     return <SuccessView onBack={handleSuccessBack} />;

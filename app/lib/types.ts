@@ -4,6 +4,7 @@ export interface Script {
   body: string;        // HTML string (rich text)
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;  // soft delete timestamp — present means trashed
 }
 
 export interface TeleprompterSettings {
