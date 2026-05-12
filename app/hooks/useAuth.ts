@@ -39,6 +39,15 @@ export function useAuth() {
             localStorage.setItem("reelprompt:pro-key", pendingCode);
             localStorage.removeItem("reelprompt:pending-code");
             setIsPro(true);
+            // Send welcome email once — fire and forget
+            if (!localStorage.getItem("reelprompt:welcome-sent")) {
+              localStorage.setItem("reelprompt:welcome-sent", "true");
+              fetch("/api/welcome", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: u.email }),
+              }).catch(() => {});
+            }
           } else {
             // Returning user: check DB — works because RLS is USING (true)
             const isProUser = await checkProUser(u.email);
@@ -94,6 +103,7 @@ export function useAuth() {
     localStorage.removeItem("reelprompt:pro");
     localStorage.removeItem("reelprompt:pro-key");
     localStorage.removeItem("reelprompt:welcomed");
+    localStorage.removeItem("reelprompt:welcome-sent");
     await supabase.auth.signOut();
   };
 
