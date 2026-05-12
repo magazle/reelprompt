@@ -74,32 +74,15 @@ function startPortraitCanvas(
         sy = (vh - sh) / 2;
       }
 
-      // Zoom: 1.0 = default 9:16 crop, >1 zooms in, <1 zooms out.
-      // Zoom out is safe only if we have extra physical pixels beyond the
-      // 9:16 crop — maxZoomOut is how much we can widen before hitting
-      // the actual frame edges. On low-res cameras this clamps near 1.0.
-      const zoom = Math.min(Math.max(0.1, getZoom()), 4.0);
+      // Zoom in only (1.0 = full crop, 2.0 = half crop = 2x zoom).
+      // Values < 1 are clamped to 1 — no zoom-out, no distortion.
+      const zoom = Math.min(Math.max(1.0, getZoom()), 4.0);
       const zoomedSw = sw / zoom;
       const zoomedSh = sh / zoom;
-      const zoomedSx = sx + (sw - zoomedSw) / 2;
-      const zoomedSy = sy + (sh - zoomedSh) / 2;
-
-      // Clamp to actual frame — prevents out-of-bounds source coords
-      sx = Math.max(0, zoomedSx);
-      sy = Math.max(0, zoomedSy);
-      sw = Math.min(zoomedSw, vw - sx);
-      sh = Math.min(zoomedSh, vh - sy);
-
-      // Scale destination to match actual pixels drawn (no stretch)
-      const scaleX = sw / zoomedSw;
-      const scaleY = sh / zoomedSh;
-      const dstW = TARGET_W * scaleX;
-      const dstH = TARGET_H * scaleY;
-      const dstX = (TARGET_W - dstW) / 2;
-      const dstY = (TARGET_H - dstH) / 2;
-
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, TARGET_W, TARGET_H);
+      sx += (sw - zoomedSw) / 2;
+      sy += (sh - zoomedSh) / 2;
+      sw = zoomedSw;
+      sh = zoomedSh;
 
       if (needsSwap) {
         ctx.save();
@@ -108,7 +91,7 @@ function startPortraitCanvas(
         ctx.drawImage(videoEl, sy, sx, sh, sw, -TARGET_H / 2, -TARGET_W / 2, TARGET_H, TARGET_W);
         ctx.restore();
       } else {
-        ctx.drawImage(videoEl, sx, sy, sw, sh, dstX, dstY, dstW, dstH);
+        ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, TARGET_W, TARGET_H);
       }
     }
     rafId = requestAnimationFrame(draw);
@@ -142,13 +125,11 @@ export function useCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: "user",
-          // Request the highest resolution available so the canvas crop
-          // has physical pixels to work with for zoom-out without distortion.
-          // The browser picks the closest supported resolution — never fails.
-          width:     { ideal: 3840 },
-          height:    { ideal: 2160 },
-          frameRate: { ideal: 60, min: 30 },
+          facingMode:  "user",
+          width:       { ideal: TARGET_W },
+          height:      { ideal: TARGET_H },
+          aspectRatio: { ideal: 9 / 16 },
+          frameRate:   { ideal: 60, min: 30 },
         },
         audio: {
           echoCancellation: true,
