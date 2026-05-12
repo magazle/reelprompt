@@ -30,6 +30,22 @@ export default function AdminPage() {
   const [codeFilter, setCodeFilter] = useState<CodeFilter>("all");
   const [copied, setCopied] = useState<string | null>(null);
 
+  // globals.css sets overscroll-behavior: none on html/body for the main app.
+  // Admin is a normal scrollable page, so we override it on mount and restore on unmount.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = { htmlOverflow: html.style.overflow, bodyOverflow: body.style.overflow, bodyOverscroll: body.style.overscrollBehavior };
+    html.style.overflow = "auto";
+    body.style.overflow = "auto";
+    body.style.overscrollBehavior = "auto";
+    return () => {
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
+    };
+  }, []);
+
   const fetchData = useCallback(async () => {
     if (!sessionToken) return;
     setFetching(true); setError(null);
