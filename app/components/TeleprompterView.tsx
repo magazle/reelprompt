@@ -48,6 +48,11 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
     return () => el.removeEventListener("scroll", onScroll);
   }, [scroll.containerRef]);
 
+  // ── Sync zoom to camera ref (live, no re-init needed) ──
+  useEffect(() => {
+    if (camera.zoomRef) camera.zoomRef.current = settings.zoom ?? 1;
+  }, [settings.zoom, camera.zoomRef]);
+
   // ── Hint auto-hide ──
   useEffect(() => {
     const t = setTimeout(() => setShowHint(false), 5000);
@@ -89,7 +94,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
       if (stream && videoElRef.current) {
         videoElRef.current.srcObject = stream;
         // initPortraitEncoder handles its own play/dimension readiness internally
-        camera.initPortraitEncoder(videoElRef.current, () => settings.zoom ?? 1);
+        camera.initPortraitEncoder(videoElRef.current);
       }
     });
     wake.acquire();
@@ -106,7 +111,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
     if (el && camera.streamRef.current) {
       el.srcObject = camera.streamRef.current;
       // initPortraitEncoder handles its own play/dimension readiness internally
-      camera.initPortraitEncoder(el, () => settings.zoom ?? 1);
+      camera.initPortraitEncoder(el);
     }
   }, [camera.streamRef, camera.initPortraitEncoder]);
 
@@ -570,7 +575,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-mono)", width: 40 }}>ZOOM</span>
                   <input
-                    type="range" min={1} max={3} step={0.1} value={settings.zoom ?? 1}
+                    type="range" min={0.5} max={2.0} step={0.1} value={settings.zoom ?? 1}
                     onChange={(e) => handleSettingsChange({ ...settings, zoom: Number(e.target.value) })}
                     style={{ width: 120, accentColor: "var(--accent)", height: 3 }}
                   />

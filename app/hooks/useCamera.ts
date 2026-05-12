@@ -73,12 +73,15 @@ function startPortraitCanvas(
         sy = (vh - sh) / 2;
       }
 
-      // Apply zoom: shrink the source crop region (zoom in)
-      const zoom = Math.max(1, getZoom());
-      const zoomedSw = sw / zoom;
-      const zoomedSh = sh / zoom;
+      // Apply zoom: > 1.0 zooms in (smaller crop), < 1.0 zooms out (larger crop).
+      // Clamp so we never exceed the actual source dimensions.
+      const zoom = Math.min(Math.max(0.1, getZoom()), 4.0);
+      const zoomedSw = Math.min(sw / zoom, vw);
+      const zoomedSh = Math.min(sh / zoom, vh);
       sx += (sw - zoomedSw) / 2;
       sy += (sh - zoomedSh) / 2;
+      sx = Math.max(0, sx);
+      sy = Math.max(0, sy);
       sw = zoomedSw;
       sh = zoomedSh;
 
@@ -105,6 +108,7 @@ function startPortraitCanvas(
 
 export function useCamera() {
   const streamRef        = useRef<MediaStream | null>(null);
+  const zoomRef          = useRef<number>(1);
   // canvasRef is now exported so TeleprompterView can use it as the preview element.
   // The user sees exactly what gets recorded — no crop discrepancy possible.
   const canvasRef        = useRef<HTMLCanvasElement | null>(null);
@@ -168,7 +172,7 @@ export function useCamera() {
    * This guarantees that what the user sees is pixel-identical to what
    * the MediaRecorder encodes — no CSS-vs-canvas crop discrepancy.
    */
-  const initPortraitEncoder = useCallback((videoEl: HTMLVideoElement, getZoom: () => number = () => 1) => {
+  const initPortraitEncoder = useCallback((videoEl: HTMLVideoElement) => {
     videoElRef.current = videoEl;
     encoderReadyRef.current = false;
 
@@ -180,7 +184,7 @@ export function useCamera() {
           const canvas = document.createElement("canvas");
           canvasRef.current = canvas;
 
-          stopCanvasRef.current = startPortraitCanvas(videoEl, canvas, streamRef.current!, getZoom);
+          stopCanvasRef.current = startPortraitCanvas(videoEl, canvas, streamRef.current!, () => zoomRef.current);
 
           const canvasStream = canvas.captureStream(30);
           streamRef.current!.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
@@ -322,6 +326,7 @@ export function useCamera() {
     // Exposed so TeleprompterView can render the canvas as the preview.
     // What the user sees == what gets recorded. No crop discrepancy.
     canvasRef,
+    zoomRef,
     startCamera,
     stopCamera,
     initPortraitEncoder,
