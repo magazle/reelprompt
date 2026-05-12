@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Script, TeleprompterSettings } from "../lib/types";
-import { useCamera } from "../hooks/useCamera";
+import { useCamera, DEBUG_MODE } from "../hooks/useCamera";
 import { useTeleprompterScroll } from "../hooks/useTeleprompterScroll";
 import { useWakeLock } from "../hooks/useWakeLock";
 import SettingsPanel from "./SettingsPanel";
@@ -21,6 +21,30 @@ function formatTime(secs: number) {
   const m = Math.floor(secs / 60).toString().padStart(2, "0");
   const s = (secs % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
+}
+
+
+// ── Debug overlay ─────────────────────────────────────────────────────────
+function DebugOverlay({ debugInfoRef }: { debugInfoRef: React.RefObject<string> }) {
+  const [text, setText] = React.useState("");
+  React.useEffect(() => {
+    const iv = setInterval(() => {
+      if (debugInfoRef.current) setText(debugInfoRef.current);
+    }, 500);
+    return () => clearInterval(iv);
+  }, [debugInfoRef]);
+
+  if (!text) return null;
+  return (
+    <div style={{
+      background: "rgba(0,0,0,0.75)", borderRadius: 8,
+      padding: "4px 10px", fontSize: 10,
+      color: "#0f0", fontFamily: "monospace",
+      whiteSpace: "pre-wrap", textAlign: "center", maxWidth: "95%",
+    }}>
+      {text}
+    </div>
+  );
 }
 
 export default function TeleprompterView({ script, settings, onSettingsChange, onBack }: Props) {
@@ -237,6 +261,16 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
             }}
             style={{ position: "absolute", inset: 0, zIndex: 0 }}
           />
+        )}
+
+        {/* Debug overlay — visible only when DEBUG_MODE = true */}
+        {DEBUG_MODE && (
+          <div style={{
+            position: "absolute", top: 8, left: 0, right: 0, zIndex: 100,
+            display: "flex", justifyContent: "center", pointerEvents: "none",
+          }}>
+            <DebugOverlay debugInfoRef={camera.debugInfoRef} />
+          </div>
         )}
 
         {/* No permission state */}

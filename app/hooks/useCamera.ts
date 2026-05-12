@@ -1,8 +1,13 @@
 "use client";
-import { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { fixVideoBlob } from "../lib/fixVideoRotation";
 
 export type RecordingState = "idle" | "recording" | "paused" | "done" | "fixing";
+
+// ── Debug mode ────────────────────────────────────────────────────────────
+// Set to true to show camera info overlay in TeleprompterView.
+// Disable before shipping to production.
+export const DEBUG_MODE = true;
 
 const TARGET_W = 1080;
 const TARGET_H = 1920;
@@ -36,7 +41,8 @@ function startPortraitCanvas(
   videoEl: HTMLVideoElement,
   canvas: HTMLCanvasElement,
   stream: MediaStream,
-  getZoom: () => number
+  getZoom: () => number,
+  debugRef?: React.MutableRefObject<string>
 ): () => void {
   const ctx = canvas.getContext("2d")!;
   canvas.width  = TARGET_W;
@@ -57,6 +63,17 @@ function startPortraitCanvas(
     let vh = videoEl.videoHeight;
 
     if (vw > 0 && vh > 0) {
+      if (DEBUG_MODE) {
+        const s = track?.getSettings();
+        if (debugRef) debugRef.current = [
+          `raw: ${videoEl.videoWidth}×${videoEl.videoHeight}`,
+          s ? `track: ${s.width}×${s.height}` : "",
+          `swap: ${needsSwap}`,
+          `zoom: ${getZoom().toFixed(2)}x`,
+          `crop: ${Math.round(vw)}×${Math.round(vh)}`,
+        ].filter(Boolean).join("  |  ");
+      }
+
       if (needsSwap) { [vw, vh] = [vh, vw]; }
 
       const targetAspect = TARGET_W / TARGET_H; // 0.5625 — portrait 9:16
@@ -103,6 +120,7 @@ function startPortraitCanvas(
 
 export function useCamera() {
   const streamRef        = useRef<MediaStream | null>(null);
+  const debugInfoRef     = useRef<string>("");  // populated in draw loop when DEBUG_MODE
   const zoomRef          = useRef<number>(1);
   // canvasRef is now exported so TeleprompterView can use it as the preview element.
   // The user sees exactly what gets recorded — no crop discrepancy possible.
@@ -179,7 +197,7 @@ export function useCamera() {
           const canvas = document.createElement("canvas");
           canvasRef.current = canvas;
 
-          stopCanvasRef.current = startPortraitCanvas(videoEl, canvas, streamRef.current!, () => zoomRef.current);
+          stopCanvasRef.current = startPortraitCanvas(videoEl, canvas, streamRef.current!, () => zoomRef.current, debugInfoRef);
 
           const canvasStream = canvas.captureStream(30);
           streamRef.current!.getAudioTracks().forEach((t) => canvasStream.addTrack(t));
@@ -322,6 +340,7 @@ export function useCamera() {
     // What the user sees == what gets recorded. No crop discrepancy.
     canvasRef,
     zoomRef,
+    debugInfoRef,
     startCamera,
     stopCamera,
     initPortraitEncoder,
