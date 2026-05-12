@@ -7,14 +7,30 @@ const TARGET_W = 1080;
 const TARGET_H = 1920;
 
 function pickMimeType(): string {
-  const candidates = [
+  // On Android, WebM/VP8 is more reliable than MP4/avc1 which can corrupt
+  // orientation metadata (Brave shows: "avc1 codec description must not change").
+  // Prefer WebM on Android, MP4 with avc3 on desktop where avc1 causes issues.
+  const isAndroid = /android/i.test(navigator.userAgent);
+
+  const androidCandidates = [
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm",
+    "video/mp4;codecs=avc3,mp4a.40.2",
     "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-    "video/mp4;codecs=avc1,mp4a.40.2",
+    "video/mp4",
+  ];
+
+  const desktopCandidates = [
+    "video/mp4;codecs=avc3,mp4a.40.2",
+    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
     "video/mp4",
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
     "video/webm",
   ];
+
+  const candidates = isAndroid ? androidCandidates : desktopCandidates;
   return candidates.find((t) => MediaRecorder.isTypeSupported(t)) ?? "video/webm";
 }
 
