@@ -7,23 +7,17 @@ const TARGET_W = 1080;
 const TARGET_H = 1920;
 
 function pickMimeType(): string {
-  // On Android, WebM/VP8 is more reliable than MP4/avc1 which can corrupt
-  // orientation metadata (Brave shows: "avc1 codec description must not change").
-  // Prefer WebM on Android, MP4 with avc3 on desktop where avc1 causes issues.
   const isAndroid = /android/i.test(navigator.userAgent);
 
   const androidCandidates = [
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
     "video/webm",
-    "video/mp4;codecs=avc3,mp4a.40.2",
-    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-    "video/mp4",
   ];
 
   const desktopCandidates = [
-    "video/mp4;codecs=avc3,mp4a.40.2",
     "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+    "video/mp4;codecs=avc1,mp4a.40.2",
     "video/mp4",
     "video/webm;codecs=vp9,opus",
     "video/webm;codecs=vp8,opus",
@@ -35,15 +29,15 @@ function pickMimeType(): string {
 }
 
 /**
- * Draw the camera stream onto a 1080×1920 canvas, centre-cropped to 9:16.
+ * Draw the camera stream onto a canvas, centre-cropped to 9:16.
  *
- * Mobile quirk: some Android browsers (Chrome, Samsung Internet) report
- * videoWidth/videoHeight as the physical sensor dimensions even when the
- * stream is displayed portrait — because rotation is encoded as metadata,
- * not as pixel layout. We detect this case by checking whether the stream
- * track's getSettings() reports width > height, and if the rendered video
- * preview appears portrait (el.clientHeight > el.clientWidth), we swap the
- * draw coordinates to compensate.
+ * Android/WebM: WebM does not add rotation metadata, so we draw portrait
+ * directly (1080x1920) — no pre-rotation needed.
+ *
+ * Desktop/MP4: draw portrait (1080x1920) directly with avc1.
+ *
+ * Non-Android browsers that report landscape dimensions for a portrait stream
+ * (metadata-rotation quirk): detect via track settings vs clientHeight.
  */
 function startPortraitCanvas(
   videoEl: HTMLVideoElement,
@@ -51,19 +45,17 @@ function startPortraitCanvas(
   stream: MediaStream
 ): () => void {
   const ctx = canvas.getContext("2d")!;
-  canvas.width  = TARGET_W;
-  canvas.height = TARGET_H;
 
-  // Detect metadata-rotation quirk:
-  // If the track reports landscape dimensions but the video element renders portrait,
-  // the browser is rotating via CSS/metadata — we need to account for that in the draw.
-  const track       = stream.getVideoTracks()[0];
-  const settings    = track?.getSettings() ?? {};
-  const trackW      = settings.width  ?? videoEl.videoWidth;
-  const trackH      = settings.height ?? videoEl.videoHeight;
+  // Always draw portrait canvas — WebM on Android doesn't add rotation metadata
+  canvas.width  = TARGET_W; // 1080
+  canvas.height = TARGET_H; // 1920
+
+  const track            = stream.getVideoTracks()[0];
+  const settings         = track?.getSettings() ?? {};
+  const trackW           = settings.width  ?? videoEl.videoWidth;
+  const trackH           = settings.height ?? videoEl.videoHeight;
   const trackIsLandscape = trackW > trackH;
   const previewIsPortrait = videoEl.clientHeight > videoEl.clientWidth;
-  // If both are true, the rotation is metadata-only — treat vw/vh as swapped
   const needsSwap = trackIsLandscape && previewIsPortrait;
 
   let rafId = 0;
@@ -73,33 +65,25 @@ function startPortraitCanvas(
     let vh = videoEl.videoHeight;
 
     if (vw > 0 && vh > 0) {
-      // If the stream is metadata-rotated, swap reported dimensions
       if (needsSwap) { [vw, vh] = [vh, vw]; }
 
-      const targetAspect = TARGET_W / TARGET_H; // 0.5625 portrait
+      const targetAspect = TARGET_W / TARGET_H;
       const srcAspect    = vw / vh;
 
       let sx = 0, sy = 0, sw = vw, sh = vh;
       if (srcAspect > targetAspect) {
-        // Source wider than 9:16 → crop sides
         sw = vh * targetAspect;
         sx = (vw - sw) / 2;
       } else {
-        // Source taller than 9:16 → crop top/bottom
         sh = vw / targetAspect;
         sy = (vh - sh) / 2;
       }
 
       if (needsSwap) {
-        // Draw with 90° rotation to undo metadata rotation
         ctx.save();
         ctx.translate(TARGET_W / 2, TARGET_H / 2);
         ctx.rotate(Math.PI / 2);
-        ctx.drawImage(
-          videoEl,
-          sy, sx, sh, sw,                           // swapped source coords
-          -TARGET_H / 2, -TARGET_W / 2, TARGET_H, TARGET_W
-        );
+        ctx.drawImage(videoEl, sy, sx, sh, sw, -TARGET_H / 2, -TARGET_W / 2, TARGET_H, TARGET_W);
         ctx.restore();
       } else {
         ctx.drawImage(videoEl, sx, sy, sw, sh, 0, 0, TARGET_W, TARGET_H);
@@ -118,7 +102,7 @@ export function useCamera() {
   const canvasStreamRef     = useRef<MediaStream | null>(null);
   const videoElRef          = useRef<HTMLVideoElement | null>(null);
   const stopCanvasRef       = useRef<(() => void) | null>(null);
-  const encoderReadyRef     = useRef(false);  // true once canvas stream is live
+  const encoderReadyRef     = useRef(false);
   const mediaRecorderRef    = useRef<MediaRecorder | null>(null);
   const chunksRef           = useRef<Blob[]>([]);
   const mimeTypeRef         = useRef<string>("");
@@ -165,12 +149,6 @@ export function useCamera() {
     streamRef.current = null;
   }, []);
 
-  /**
-   * Initialise the portrait canvas encoder.
-   * Called from TeleprompterView once the <video> element is playing.
-   * Uses videoEl.onplay (not onloadedmetadata) — this guarantees real pixel
-   * data is flowing before we inspect videoWidth/videoHeight.
-   */
   const initPortraitEncoder = useCallback((videoEl: HTMLVideoElement) => {
     videoElRef.current = videoEl;
     encoderReadyRef.current = false;
@@ -178,8 +156,6 @@ export function useCamera() {
     const setup = () => {
       if (!streamRef.current) return;
 
-      // Poll until we get real non-zero dimensions
-      // (belt-and-suspenders for slow Android devices)
       const poll = () => {
         if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
           const canvas = document.createElement("canvas");
@@ -199,18 +175,12 @@ export function useCamera() {
     };
 
     if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
-      // Already playing — set up immediately
       setup();
     } else {
-      // Wait for actual playback — more reliable than onloadedmetadata
       videoEl.onplay = () => { setup(); videoEl.onplay = null; };
     }
   }, []);
 
-  /**
-   * Start recording. If the canvas encoder isn't ready yet (can happen on very
-   * slow devices within the 3s countdown), wait up to 2s then fall back to raw stream.
-   */
   const startRecording = useCallback(() => {
     const begin = (recordStream: MediaStream) => {
       chunksRef.current = [];
@@ -244,7 +214,6 @@ export function useCamera() {
       return;
     }
 
-    // Encoder not ready yet — poll for up to 2000ms then fall back
     const deadline = Date.now() + 2000;
     const wait = () => {
       if (encoderReadyRef.current && canvasStreamRef.current) {
@@ -252,7 +221,6 @@ export function useCamera() {
       } else if (Date.now() < deadline) {
         setTimeout(wait, 50);
       } else {
-        // Fall back to raw stream — better than nothing
         if (streamRef.current) begin(streamRef.current);
       }
     };
@@ -288,7 +256,6 @@ export function useCamera() {
     const ext      = mimeTypeRef.current.includes("mp4") ? "mp4" : "webm";
     const fullName = `${filename}.${ext}`;
 
-    // 1. Web Share API — mobile: OS share sheet (gallery, Drive, AirDrop…)
     if (navigator.canShare) {
       const file = new File([lastBlob], fullName, { type: lastBlob.type });
       if (navigator.canShare({ files: [file] })) {
@@ -301,7 +268,6 @@ export function useCamera() {
       }
     }
 
-    // 2. File System Access API — desktop Chrome/Edge: native Save As dialog
     if ("showSaveFilePicker" in window) {
       try {
         const handle = await (window as Window & {
@@ -319,7 +285,6 @@ export function useCamera() {
       }
     }
 
-    // 3. <a download> fallback
     const url = URL.createObjectURL(lastBlob);
     const a   = document.createElement("a");
     a.href = url; a.download = fullName; a.click();
