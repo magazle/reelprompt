@@ -14,6 +14,7 @@ interface Props {
   onSave: (s: Script) => Script;
   onBack: () => void;
   onStartTeleprompter: (s: Script) => void;
+  onStartTextOnly: (s: Script) => void;
   onSettingsChange: (s: TeleprompterSettings) => void;
 }
 
@@ -349,7 +350,7 @@ function IconMD() {
 // ── Main ScriptEditor ─────────────────────────────────────────────────────
 
 export default function ScriptEditor({
-  script, settings, onSave, onBack, onStartTeleprompter, onSettingsChange,
+  script, settings, onSave, onBack, onStartTeleprompter, onStartTextOnly, onSettingsChange,
 }: Props) {
   const [title, setTitle]               = useState(script.title);
   const [saved, setSaved]               = useState(true);
@@ -465,6 +466,16 @@ export default function ScriptEditor({
     currentScript.current = updated;
     setSaved(true);
     onStartTeleprompter(updated);
+  };
+
+  // Text-only prompter (no camera) — for use over the native camera app
+  const handleStartTextOnly = () => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    const html = editorRef.current?.innerHTML ?? "";
+    const updated = onSave({ ...currentScript.current, title, body: html });
+    currentScript.current = updated;
+    setSaved(true);
+    onStartTextOnly(updated);
   };
 
   // Settings persistence is handled centrally in page.tsx handleSettingsChange.
@@ -640,17 +651,26 @@ export default function ScriptEditor({
           )}
         </div>
         {/* Row 2: full-width record button */}
-        <div style={{ padding: "10px 14px 12px" }}>
+        <div style={{ padding: "10px 14px 12px", display: "flex", gap: 8 }}>
           <button
             className="btn btn-primary"
             disabled={!hasContent}
             style={{
-              width: "100%", opacity: hasContent ? 1 : 0.4,
+              flex: 1, opacity: hasContent ? 1 : 0.4,
               background: "#ff3b30", borderRadius: 12, height: 48, fontSize: 15,
             }}
             onClick={handleStartRecording}
           >
             ● Start Recording
+          </button>
+          <button
+            className="btn btn-ghost"
+            disabled={!hasContent}
+            title="Teleprompter without camera — use it over your phone's camera app"
+            style={{ opacity: hasContent ? 1 : 0.4, borderRadius: 12, height: 48, fontSize: 14, padding: "0 16px", flexShrink: 0 }}
+            onClick={handleStartTextOnly}
+          >
+            Text only
           </button>
         </div>
       </div>

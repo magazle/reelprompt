@@ -7,10 +7,11 @@ import { countWords } from "./lib/utils";
 import ScriptCard from "./components/ScriptCard";
 import ScriptEditor from "./components/ScriptEditor";
 import TeleprompterView from "./components/TeleprompterView";
+import PrompterView from "./components/PrompterView";
 import MoreView from "./components/AccountView";
 import { IconPlus } from "./components/Icons";
 
-type View = "list" | "editor" | "teleprompter" | "more";
+type View = "list" | "editor" | "teleprompter" | "prompter" | "more";
 type SortOrder = "recent" | "oldest" | "az";
 
 
@@ -254,11 +255,14 @@ export default function Home() {
   if (view === "more") {
     return <MoreView onBack={() => setView("list")} deletedScripts={deletedScripts} onRestore={restore} onPermanentDelete={permanentRemove} />;
   }
+  if (view === "prompter" && activeScript) {
+    return <PrompterView script={activeScript} settings={settings} onSettingsChange={handleSettingsChange} onBack={() => setView("editor")} />;
+  }
   if (view === "teleprompter" && activeScript) {
     return <TeleprompterView script={activeScript} settings={settings} onSettingsChange={handleSettingsChange} onBack={() => setView("editor")} />;
   }
   if (view === "editor" && activeScript) {
-    return <ScriptEditor script={activeScript} settings={settings} onSave={handleSave} onBack={() => setView("list")} onStartTeleprompter={handleStartTeleprompter} onSettingsChange={handleSettingsChange} />;
+    return <ScriptEditor script={activeScript} settings={settings} onSave={handleSave} onBack={() => setView("list")} onStartTeleprompter={handleStartTeleprompter} onStartTextOnly={(s: Script) => { setActiveScript(s); setView("prompter"); }} onSettingsChange={handleSettingsChange} />;
   }
 
   const hasScripts = scripts.length > 0;
