@@ -17,7 +17,7 @@ const sections = [
       },
       {
         q: "Does ReelPrompt work offline?",
-        a: "Yes. ReelPrompt is a PWA (Progressive Web App) that works fully offline. Your scripts are saved locally on your device. An internet connection is only needed to activate Pro and sync across devices.",
+        a: "Yes. ReelPrompt is a PWA (Progressive Web App) that works fully offline. Your scripts are saved locally on your device, and no internet connection is needed once the app is loaded.",
       },
       {
         q: "How do I install ReelPrompt on my home screen?",
@@ -28,8 +28,8 @@ const sections = [
         a: "When installed as a PWA, ReelPrompt runs fullscreen with no browser bar, behaves more like a native app, and has better access to camera and screen wake lock. We recommend installing it for the best experience.",
       },
       {
-        q: "I can only create 3 scripts. Why?",
-        a: "The free plan includes up to 3 scripts. To create unlimited scripts, upgrade to Pro — it's a one-time payment of €3. Tap Go Pro in the header to get started.",
+        q: "Is ReelPrompt free?",
+        a: "Yes, completely. Unlimited scripts, teleprompter, camera recording and calibration, with no account and no payment. If you love it, you can buy us a coffee from the menu — totally optional.",
       },
     ],
   },
@@ -68,70 +68,16 @@ const sections = [
     ],
   },
   {
-    emoji: "✦",
-    title: "ReelPrompt Pro",
-    items: [
-      {
-        q: "What is ReelPrompt Pro?",
-        a: "Pro gives you unlimited scripts and sync across all your devices — write on your laptop, record on your phone. It is a one-time payment of €3. No subscription, no expiry.",
-      },
-      {
-        q: "How do I activate Pro?",
-        a: "Tap Go Pro in the header → Support ReelPrompt on Ko-fi with €3 or more. After payment you'll receive an activation code by email. Enter the code in the app, then enter your email to receive a magic link. Click the link to complete activation.",
-      },
-      {
-        q: "What is a magic link?",
-        a: "A magic link is a secure one-time sign-in link sent to your email — no password needed. Click it and you are signed in automatically. It works on any browser and any device.",
-      },
-      {
-        q: "I clicked the magic link but it opened in the browser, not in the app.",
-        a: "This is expected behaviour on iOS and Android — email clients always open links in the browser. Once the browser confirms you're signed in, simply switch back to the ReelPrompt app (or PWA) on your home screen. Your Pro status will be active immediately.",
-      },
-      {
-        q: "Can I use Pro on multiple devices?",
-        a: "Yes. On each new device, tap Go Pro → Already registered, enter your email and request a new magic link. After clicking the link, switch back to the ReelPrompt app — you'll be signed in and your scripts will sync automatically.",
-      },
-      {
-        q: "Does Pro work offline?",
-        a: "Yes. Once you have signed in at least once, your Pro status and scripts are cached locally. You can use ReelPrompt fully offline. Sync resumes automatically when you reconnect.",
-      },
-      {
-        q: "Why can't I sign in when I'm offline?",
-        a: "The magic link is sent via email, which requires an internet connection. If you are offline, you will see a notice in the app. Your existing Pro session remains active — you just cannot start a new session until you reconnect.",
-      },
-      {
-        q: "I paid but haven't received my activation code.",
-        a: "Check your spam folder first. Codes are usually delivered within a few minutes. If it's not there after 24 hours, use the contact form below with your Ko-fi order confirmation and we'll sort it out immediately.",
-      },
-      {
-        q: "I lost access to my email. Can I still use Pro?",
-        a: "Yes. Contact us via the form below with your Ko-fi order confirmation and we'll transfer your Pro status to a new email address.",
-      },
-      {
-        q: "Can I change my email address?",
-        a: "Yes. Use the Contact & Feedback form in your profile and send us your current and new email address. We'll update it manually and send a new magic link to the new address.",
-      },
-    ],
-  },
-  {
     emoji: "📝",
-    title: "Scripts & sync",
+    title: "Scripts",
     items: [
       {
         q: "How do I recover a deleted script?",
-        a: "Deleted scripts are moved to an archive, not permanently removed. Go to your profile (the circle button in the header) → scroll down to Deleted scripts. From there you can restore any script to your list, or permanently delete it.",
-      },
-      {
-        q: "My scripts aren't syncing across devices.",
-        a: "Make sure you are signed in with the same email on both devices. If you are signed in, tap the ↻ sync button on the home screen to force a manual sync. Scripts merge by last-edited date — the most recently edited version always wins.",
-      },
-      {
-        q: "I deleted a script on one device but it reappeared on another.",
-        a: "If you deleted the script before updating to the latest version of ReelPrompt, the deletion may not have propagated correctly. Delete the script again — it now uses a soft delete system that syncs correctly across all devices.",
+        a: "Deleted scripts are moved to an archive, not permanently removed. Open the menu (≡) in the header → Deleted scripts. From there you can restore any script to your list, or permanently delete it.",
       },
       {
         q: "I lost my scripts after clearing browser data.",
-        a: "Free users store scripts in localStorage, which is cleared when you clear browser data or cookies. Pro users can recover their scripts by signing back in — scripts are synced to the cloud and restored automatically.",
+        a: "Scripts are stored in your browser's local storage, which is erased when you clear browser data. Unfortunately they cannot be recovered, because we never have a copy of them.",
       },
     ],
   },
@@ -141,15 +87,15 @@ const sections = [
     items: [
       {
         q: "Where are my scripts stored?",
-        a: "Free users: scripts are stored locally on your device using localStorage — we have no access to them. Pro users: scripts are also stored on Supabase servers in Ireland (EU), encrypted in transit and at rest.",
+        a: "Only on your device, in your browser's local storage. They are never sent to our servers and we have no access to them.",
       },
       {
         q: "Do you use cookies or tracking?",
-        a: "We use only essential technical cookies — no advertising, no analytics, no tracking. See our Privacy Policy for the full list.",
+        a: "No. ReelPrompt uses no cookies, no analytics and no tracking. It only uses your browser's local storage to keep your scripts and settings on your device.",
       },
       {
-        q: "How do I delete my account and data?",
-        a: "Send us a message via the contact form below or the Contact & Feedback form in your profile. We will delete your email, scripts and settings from our servers within 30 days.",
+        q: "How do I delete my data?",
+        a: "Delete your scripts from the app and empty Deleted scripts, or simply clear your browser data for this site. Nothing is stored anywhere else.",
       },
     ],
   },

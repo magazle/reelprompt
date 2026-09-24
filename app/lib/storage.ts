@@ -34,7 +34,8 @@ function saveScripts(scripts: Script[]): void {
 
 /** Save (upsert) a single script into the list */
 export function saveScript(script: Script): void {
-  const all = getScripts();
+  // getAllScripts (not getScripts) so deleted scripts are kept in the trash
+  const all = getAllScripts();
   const idx = all.findIndex((s) => s.id === script.id);
   if (idx >= 0) all[idx] = script;
   else all.unshift(script);

@@ -3,19 +3,14 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Script, TeleprompterSettings } from "./lib/types";
 import { getSettings, saveSettings } from "./lib/storage";
 import { useScripts } from "./hooks/useScripts";
-import { useAuth } from "./hooks/useAuth";
 import { countWords } from "./lib/utils";
 import ScriptCard from "./components/ScriptCard";
 import ScriptEditor from "./components/ScriptEditor";
 import TeleprompterView from "./components/TeleprompterView";
-import PricingView from "./components/PricingView";
-import SuccessView from "./components/SuccessView";
-import AccountView from "./components/AccountView";
-import WelcomeModal from "./components/WelcomeModal";
-import CookieBanner from "./components/CookieBanner";
+import MoreView from "./components/AccountView";
 import { IconPlus } from "./components/Icons";
 
-type View = "list" | "editor" | "teleprompter" | "pricing" | "success" | "account";
+type View = "list" | "editor" | "teleprompter" | "more";
 type SortOrder = "recent" | "oldest" | "az";
 
 
@@ -195,38 +190,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
             </p>
           </div>
 
-          {/* Pricing */}
           <div style={{ padding: "20px 20px 0" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12 }}>Free vs Pro</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-              {/* Free */}
-              <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: 14, padding: "16px" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Free</div>
-                {["3 scripts", "Teleprompter", "Camera recording", "Calibration"].map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-                    <span style={{ color: "var(--accent)", fontSize: 12, fontWeight: 700 }}>✓</span>
-                    <span style={{ fontSize: 12, color: "var(--text-2)" }}>{f}</span>
-                  </div>
-                ))}
-              </div>
-              {/* Pro */}
-              <div style={{ background: "var(--surface)", border: "2px solid var(--accent)", borderRadius: 14, padding: "16px", boxShadow: "0 0 20px var(--accent-glow)" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800 }}>✦ Pro</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, fontFamily: "var(--font-mono)", color: "var(--accent)" }}>€3 lifetime</div>
-                </div>
-                {["Unlimited scripts", "Teleprompter", "Camera recording", "Calibration", "Sync across devices"].map((f) => (
-                  <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
-                    <span style={{ color: "var(--accent)", fontSize: 12, fontWeight: 700 }}>✓</span>
-                    <span style={{ fontSize: 12, color: "var(--text-2)" }}>{f}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <a href="https://ko-fi.com/s/e02564e7cc" target="_blank" rel="noopener noreferrer"
-              style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "13px 0", borderRadius: 12, background: "var(--accent)", color: "white", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, textDecoration: "none", marginBottom: 12 }}>
-              Get Pro — €3 lifetime
-            </a>
             <a href="/help"
               style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "11px 0", borderRadius: 12, background: "var(--bg-2)", color: "var(--text-3)", fontFamily: "var(--font-mono)", fontSize: 12, textDecoration: "none", marginBottom: 20 }}>
               Need help? Visit the Help Desk →
@@ -261,74 +225,19 @@ function Footer() {
   );
 }
 
-// ── Header Pro button ─────────────────────────────────────────────────────
-
-function HeaderProButton({ isPro, isLoggedIn, onClick }: { isPro: boolean; isLoggedIn: boolean; onClick: () => void }) {
-  if (!isPro) {
-    return (
-      <button onClick={onClick} title="Upgrade to Pro"
-        style={{ height: 38, padding: "0 14px", borderRadius: 12, background: "var(--accent)", color: "white", border: "none", fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "background 0.15s" }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-2)")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "var(--accent)")}>
-        ✦ Go Pro
-      </button>
-    );
-  }
-  return (
-    <button onClick={onClick} title={isLoggedIn ? "Your Pro account" : "Set up sync"}
-      style={{ width: 38, height: 38, borderRadius: "50%", background: isLoggedIn ? "var(--accent)" : "var(--bg-2)", color: isLoggedIn ? "white" : "var(--accent)", border: isLoggedIn ? "none" : "1.5px solid var(--accent)", cursor: "pointer", fontSize: 15, display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}>
-      ✦
-    </button>
-  );
-}
-
 // ── Root ──────────────────────────────────────────────────────────────────
 
 export default function Home() {
-  const { user, loading: authLoading, isPro, sessionToken } = useAuth();
-  const { scripts, deletedScripts, syncing, syncNow, create, save, remove, restore, permanentRemove, duplicate } = useScripts(
-    user?.id,
-    sessionToken,
-  );
+  const { scripts, deletedScripts, create, save, remove, restore, permanentRemove, duplicate } = useScripts();
   const [view, setView]                 = useState<View>("list");
   const [activeScript, setActiveScript] = useState<Script | null>(null);
   const [settings, setSettings]         = useState<TeleprompterSettings>(getSettings);
   const [query, setQuery]               = useState("");
   const [sort, setSort]                 = useState<SortOrder>("recent");
   const [showHowTo, setShowHowTo]       = useState(false);
-  const [showWelcome, setShowWelcome]   = useState(false);
   const [showMenu, setShowMenu]         = useState(false);
 
-  // isPro comes from useAuth — managed there alongside the auth state,
-  // so it updates atomically when onAuthStateChange resolves.
-
-  // Show WelcomeModal once after first Pro sign-in
-  useEffect(() => {
-    if (!user || !isPro) return;
-    const welcomed = localStorage.getItem("reelprompt:welcomed");
-    if (!welcomed) {
-      setShowWelcome(true);
-      localStorage.setItem("reelprompt:welcomed", "1");
-    }
-  }, [user, isPro]);
-
-  // Detect ?pro=success redirect from Ko-fi
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("pro") === "success") {
-      setView("success");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
-
-  const FREE_SCRIPT_LIMIT = 3;
-
   const handleCreate = () => {
-    if (!isPro && scripts.length >= FREE_SCRIPT_LIMIT) {
-      setView("pricing");
-      return;
-    }
     const s = create();
     setActiveScript(s);
     setView("editor");
@@ -340,30 +249,10 @@ export default function Home() {
   const handleSettingsChange = (s: TeleprompterSettings) => { setSettings(s); saveSettings(s); };
   const cycleSort = () => setSort((s) => SORT_CYCLE[(SORT_CYCLE.indexOf(s) + 1) % SORT_CYCLE.length]);
 
-  // Called by SuccessView — isPro will be set by useAuth after magic link
-  // Nothing to do here except navigate back
-  const handleSuccessBack = () => setView("list");
-
-  // Sign out: useAuth handles localStorage cleanup and isPro via SIGNED_OUT event
-  const handleSignOut = () => {
-    setView("list");
-  };
-
-  const handleProButtonClick = () => {
-    if (isPro) { setView("account"); return; }
-    setView("pricing");
-  };
-
   // ── Views ─────────────────────────────────────────────────────────────────
 
-  if (view === "account") {
-    return <AccountView onBack={() => setView("list")} onSignOut={handleSignOut} deletedScripts={deletedScripts} onRestore={restore} onPermanentDelete={permanentRemove} />;
-  }
-  if (view === "success") {
-    return <SuccessView onBack={handleSuccessBack} />;
-  }
-  if (view === "pricing") {
-    return <PricingView isPro={isPro} onBack={() => setView("list")} onActivate={() => setView("success")} />;
+  if (view === "more") {
+    return <MoreView onBack={() => setView("list")} deletedScripts={deletedScripts} onRestore={restore} onPermanentDelete={permanentRemove} />;
   }
   if (view === "teleprompter" && activeScript) {
     return <TeleprompterView script={activeScript} settings={settings} onSettingsChange={handleSettingsChange} onBack={() => setView("editor")} />;
@@ -407,9 +296,13 @@ export default function Home() {
               <span style={{ fontSize: 16 }}>💡</span> How it works
             </button>
             <div style={{ height: 1, background: "var(--border)", margin: "4px 6px" }} />
-            <button onClick={() => { setShowMenu(false); setTimeout(handleProButtonClick, 50); }}
-              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: isPro ? "var(--accent)" : "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 16 }}>✦</span> {isPro ? (user ? "Account" : "Set up sync") : "Go Pro — €3"}
+            <button onClick={() => { setShowMenu(false); setTimeout(() => setView("more"), 50); }}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 16 }}>🗑</span> Deleted scripts{deletedScripts.length > 0 ? ` (${deletedScripts.length})` : ""}
+            </button>
+            <button onClick={() => { setShowMenu(false); setTimeout(() => setView("more"), 50); }}
+              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 16 }}>📬</span> Help & support
             </button>
           </div>
         </>
@@ -440,9 +333,7 @@ export default function Home() {
           </div>
         </div>
         <Footer />
-        <CookieBanner />
         {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
-        {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
       </div>
     );
   }
@@ -464,29 +355,13 @@ export default function Home() {
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
               {headerRight}
               <button className="btn btn-primary" style={{ height: 38, padding: "0 14px", fontSize: 13, borderRadius: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={handleCreate}>
-                <IconPlus /> {!isPro && scripts.length >= FREE_SCRIPT_LIMIT ? "Upgrade" : "New"}
+                <IconPlus /> New
               </button>
             </div>
           </div>
           <InstallBanner />
-          {!isPro && scripts.length >= FREE_SCRIPT_LIMIT && (
-            <div onClick={() => setView("pricing")} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 12, background: "rgba(22,163,74,0.06)", border: "1px solid rgba(22,163,74,0.2)", marginBottom: 12, cursor: "pointer" }}>
-              <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0, fontFamily: "var(--font-mono)" }}>✦ You've reached the 3-script free limit.</p>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-mono)", whiteSpace: "nowrap", marginLeft: 12 }}>Go Pro →</span>
-            </div>
-          )}
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
             <div style={{ flex: 1 }}><SearchBar value={query} onChange={setQuery} /></div>
-            {isPro && user && (
-              <button
-                onClick={syncNow}
-                disabled={syncing}
-                title="Sync scripts"
-                style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 16, cursor: syncing ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: syncing ? 0.5 : 1, marginBottom: 16, flexShrink: 0, transition: "opacity 0.2s" }}
-              >
-                {syncing ? "…" : "↻"}
-              </button>
-            )}
             <div style={{ marginBottom: 16 }}><SortButton sort={sort} onToggle={cycleSort} /></div>
           </div>
           {filtered.length > 0 ? (
@@ -506,9 +381,7 @@ export default function Home() {
         </div>
       </div>
       <Footer />
-      <CookieBanner />
       {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
-      {showWelcome && <WelcomeModal onClose={() => setShowWelcome(false)} />}
     </div>
   );
 }
