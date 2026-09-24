@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#16a34a"/>
+  <!-- R built as a single path — clean at all sizes -->
+  <path d="
+    M7 6
+    L7 26
+    L10.5 26
+    L10.5 18.5
+    L15 18.5
+    L19.5 26
+    L23.5 26
+    L18.5 18
+    Q23 17 23 12
+    Q23 6 16 6
+    Z
+    M10.5 9
+    L15.5 9
+    Q19.5 9 19.5 12.5
+    Q19.5 16 15.5 16
+    L10.5 16
+    Z
+  " fill="#f0fdf4"/>
+  <!-- Rec dot -->
+  <circle cx="26.5" cy="26.5" r="3.5" fill="#f0fdf4" opacity="0.85"/>
+  <circle cx="26.5" cy="26.5" r="1.8" fill="#16a34a"/>
+</svg>
