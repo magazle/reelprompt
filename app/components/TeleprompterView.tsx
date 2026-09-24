@@ -286,6 +286,22 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
             <p style={{ fontSize: 14, color: "var(--text-2)", textAlign: "center" }}>
               Allow camera and microphone access to use ReelPrompt.
             </p>
+            {camera.cameraError && (
+              <p style={{ fontSize: 11, color: "var(--text-3)", textAlign: "center", fontFamily: "var(--font-mono)", marginTop: 16, maxWidth: 320, wordBreak: "break-word" }}>
+                {camera.cameraError}
+              </p>
+            )}
+            <button onClick={() => { camera.startCamera().then((stream) => { if (stream && videoElRef.current) { videoElRef.current.srcObject = stream; camera.initPortraitEncoder(videoElRef.current); } }); }}
+              className="btn btn-primary" style={{ marginTop: 20, pointerEvents: "auto" }}>
+              Try again
+            </button>
+          </div>
+        )}
+
+        {/* Mic unavailable: recording works but without sound */}
+        {camera.hasPermission === true && !camera.hasAudio && (
+          <div style={{ position: "absolute", top: "max(16px, env(safe-area-inset-top, 0px) + 8px)", left: "50%", transform: "translateX(-50%)", zIndex: 30, background: "rgba(0,0,0,0.6)", color: "white", fontSize: 12, fontFamily: "var(--font-mono)", padding: "6px 12px", borderRadius: 8, pointerEvents: "none" }}>
+            🎤 Microphone unavailable — recording without sound
           </div>
         )}
 

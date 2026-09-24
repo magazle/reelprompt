@@ -139,30 +139,53 @@ export function useCamera() {
   const [recordingTime, setRecordingTime]   = useState(0);
   const [lastBlob, setLastBlob]             = useState<Blob | null>(null);
 
+  // Human-readable reason when the camera can't start (shown on screen).
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  // False when the camera works but the microphone didn't (video without sound).
+  const [hasAudio, setHasAudio] = useState(true);
+
   const startCamera = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode:  "user",
-          width:       { ideal: TARGET_W },
-          height:      { ideal: TARGET_H },
-          aspectRatio: { ideal: 9 / 16 },
-          frameRate:   { ideal: 60, min: 30 },
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: { ideal: 48000 },
-        },
-      });
-      streamRef.current = stream;
-      setHasPermission(true);
-      return stream;
-    } catch (err) {
-      console.error("Camera error:", err);
-      setHasPermission(false);
-      return null;
+    const idealVideo: MediaTrackConstraints = {
+      facingMode:  "user",
+      width:       { ideal: TARGET_W },
+      height:      { ideal: TARGET_H },
+      aspectRatio: { ideal: 9 / 16 },
+      frameRate:   { ideal: 60 },
+    };
+    const idealAudio: MediaTrackConstraints = {
+      echoCancellation: true,
+      noiseSuppression: true,
+      sampleRate: { ideal: 48000 },
+    };
+    // Plan A: full quality. Plan B: basic constraints. Plan C: camera only, no mic.
+    const attempts: { constraints: MediaStreamConstraints; audio: boolean }[] = [
+      { constraints: { video: idealVideo, audio: idealAudio }, audio: true },
+      { constraints: { video: { facingMode: "user" }, audio: true }, audio: true },
+      { constraints: { video: { facingMode: "user" }, audio: false }, audio: false },
+    ];
+    const errors: string[] = [];
+    for (const a of attempts) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(a.constraints);
+        streamRef.current = stream;
+        setHasAudio(a.audio);
+        setCameraError(null);
+        setHasPermission(true);
+        if (errors.length) console.warn("Camera started after fallback:", errors);
+        return stream;
+      } catch (err) {
+        const e = err as DOMException;
+        errors.push(`${e?.name ?? "Error"}: ${e?.message ?? String(err)}`);
+      }
     }
+    console.error("Camera error:", errors);
+    setCameraError(
+      typeof navigator !== "undefined" && !navigator.mediaDevices
+        ? "mediaDevices not available (page not in a secure context?)"
+        : errors[errors.length - 1] ?? "Unknown error",
+    );
+    setHasPermission(false);
+    return null;
   }, []);
 
   const stopCamera = useCallback(() => {
@@ -210,10 +233,27 @@ export function useCamera() {
       requestAnimationFrame(poll);
     };
 
-    if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
+    // Don't rely on autoplay alone: some browsers (e.g. Brave with autoplay
+    // blocking) never fire "play" on a hidden autoplay <video>, which left the
+    // preview black. Start playback explicitly and set up on whichever
+    // readiness signal arrives first.
+    let started = false;
+    const startOnce = () => {
+      if (started) return;
+      started = true;
+      videoEl.removeEventListener("loadeddata", startOnce);
+      videoEl.removeEventListener("playing", startOnce);
       setup();
+    };
+    videoEl.muted = true;
+    videoEl.playsInline = true;
+    videoEl.play().catch((err) => console.warn("video.play() rejected:", err));
+
+    if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
+      startOnce();
     } else {
-      videoEl.onplay = () => { setup(); videoEl.onplay = null; };
+      videoEl.addEventListener("loadeddata", startOnce);
+      videoEl.addEventListener("playing", startOnce);
     }
   }, []);
 
@@ -332,6 +372,8 @@ export function useCamera() {
 
   return {
     hasPermission,
+    cameraError,
+    hasAudio,
     recordingState,
     recordingTime,
     lastBlob,
