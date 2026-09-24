@@ -1,35 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <!-- Full-bleed background -->
-  <rect width="512" height="512" fill="#16a34a"/>
-
-  <!-- R letterform — centred, safe zone aware -->
-  <!-- Stem: x=128..180, y=110..400 -->
-  <!-- Bowl top: x=128..360, y=110..165 -->
-  <!-- Bowl mid: x=128..340, y=240..295 -->
-  <!-- Bowl right arc approximated with a rounded rect -->
-  <!-- Leg: diagonal from ~(310,295) to (390,400) -->
-  <path d="
-    M 128 110
-    L 128 400
-    L 182 400
-    L 182 300
-    L 258 300
-    L 338 400
-    L 400 400
-    L 312 292
-    Q 372 272 372 198
-    Q 372 110 256 110
-    Z
-    M 182 158
-    L 248 158
-    Q 322 158 322 198
-    Q 322 252 248 252
-    L 182 252
-    Z
-  " fill="#f0fdf4"/>
-
-  <!-- Rec dot — bottom right, inside safe zone -->
-  <circle cx="390" cy="385" r="56" fill="rgba(240,253,244,0.15)"/>
-  <circle cx="390" cy="385" r="40" fill="#f0fdf4"/>
-  <circle cx="390" cy="385" r="24" fill="#16a34a"/>
+  <rect width="512" height="512" fill="#FFD23F"/>
+  <defs>
+    <clipPath id="bar"><rect x="104" y="128" width="304" height="68" rx="14"/></clipPath>
+  </defs>
+  <g transform="rotate(-9 104 196)">
+    <rect x="104" y="128" width="304" height="68" rx="14" fill="#0E0E0E"/>
+    <g clip-path="url(#bar)" fill="#FFFFFF">
+      <polygon points="140,128 184,128 144,196 100,196"/>
+      <polygon points="228,128 272,128 232,196 188,196"/>
+      <polygon points="316,128 360,128 320,196 276,196"/>
+      <polygon points="404,128 448,128 408,196 364,196"/>
+    </g>
+  </g>
+  <rect x="104" y="208" width="304" height="184" rx="28" fill="#0E0E0E"/>
+  <circle cx="256" cy="300" r="46" fill="#FF3B30"/>
 </svg>

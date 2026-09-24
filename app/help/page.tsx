@@ -130,17 +130,17 @@ const sections = [
 export default function HelpPage() {
   return (
     <html lang="en" style={{ overflowY: "auto", minHeight: "100vh" }}>
-      <body style={{ margin: 0, fontFamily: "Syne, sans-serif", background: "#f9f9f7", color: "#0f1f14", minHeight: "100vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+      <body style={{ margin: 0, fontFamily: "Onest, sans-serif", background: "#FFFFFF", color: "#0E0E0E", minHeight: "100vh", overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
         <ScrollUnlock />
         <div className="page-scrollable" style={{ maxWidth: 680, margin: "0 auto", padding: "48px 24px 80px" }}>
 
           {/* Header */}
           <div style={{ marginBottom: 40 }}>
-            <div style={{ fontSize: 11, color: "#16a34a", fontFamily: "DM Mono, monospace", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: "#0E0E0E", fontFamily: "Onest, sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
               ReelPrompt
             </div>
             <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8 }}>Help Desk</h1>
-            <p style={{ fontSize: 14, color: "#4a6654", lineHeight: 1.6, margin: 0 }}>
+            <p style={{ fontSize: 14, color: "#4A4A46", lineHeight: 1.6, margin: 0 }}>
               Everything you need to know about ReelPrompt. Can't find your answer? Use the contact form at the bottom of this page.
             </p>
           </div>
@@ -153,7 +153,7 @@ export default function HelpPage() {
               </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {section.items.map((item, i) => (
-                  <details key={i} style={{ background: "#ffffff", border: "1px solid #e2e2db", borderRadius: 12, overflow: "hidden" }}>
+                  <details key={i} style={{ background: "#ffffff", border: "1px solid #E4E4DF", borderRadius: 12, overflow: "hidden" }}>
                     <summary style={{
                       padding: "16px 20px", fontSize: 14, fontWeight: 600,
                       cursor: "pointer", listStyle: "none",
@@ -161,9 +161,9 @@ export default function HelpPage() {
                       gap: 12,
                     }}>
                       {item.q}
-                      <span style={{ fontSize: 18, color: "#86a892", flexShrink: 0, fontWeight: 400 }}>+</span>
+                      <span style={{ fontSize: 18, color: "#6B6B66", flexShrink: 0, fontWeight: 400 }}>+</span>
                     </summary>
-                    <div style={{ padding: "0 20px 16px", fontSize: 14, color: "#4a6654", lineHeight: 1.7, borderTop: "1px solid #e2e2db" }}>
+                    <div style={{ padding: "0 20px 16px", fontSize: 14, color: "#4A4A46", lineHeight: 1.7, borderTop: "1px solid #E4E4DF" }}>
                       <p style={{ margin: "12px 0 0" }}>{item.a}</p>
                     </div>
                   </details>
@@ -173,11 +173,11 @@ export default function HelpPage() {
           ))}
 
           {/* Contact form */}
-          <div style={{ marginTop: 48, padding: "28px", background: "#ffffff", border: "1px solid #e2e2db", borderRadius: 16 }}>
+          <div style={{ marginTop: 48, padding: "28px", background: "#ffffff", border: "1px solid #E4E4DF", borderRadius: 16 }}>
             <div style={{ marginBottom: 16 }}>
               <div style={{ fontSize: 20, marginBottom: 6 }}>📬</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: "#0f1f14", marginBottom: 6 }}>Still need help?</div>
-              <p style={{ fontSize: 14, color: "#4a6654", lineHeight: 1.6, margin: 0 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#0E0E0E", marginBottom: 6 }}>Still need help?</div>
+              <p style={{ fontSize: 14, color: "#4A4A46", lineHeight: 1.6, margin: 0 }}>
                 Send us a message and we'll get back to you as soon as possible.
               </p>
             </div>
@@ -185,11 +185,11 @@ export default function HelpPage() {
           </div>
 
           {/* Footer */}
-          <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid #e2e2db", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <a href="/" style={{ fontSize: 13, color: "#16a34a", textDecoration: "none", fontFamily: "DM Mono, monospace" }}>
+          <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid #E4E4DF", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <a href="/" style={{ fontSize: 13, color: "#0E0E0E", textDecoration: "none", fontFamily: "Onest, sans-serif" }}>
               ← Back to ReelPrompt
             </a>
-            <a href="/privacy" style={{ fontSize: 13, color: "#86a892", textDecoration: "none", fontFamily: "DM Mono, monospace" }}>
+            <a href="/privacy" style={{ fontSize: 13, color: "#6B6B66", textDecoration: "none", fontFamily: "Onest, sans-serif" }}>
               Privacy Policy
             </a>
           </div>

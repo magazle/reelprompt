@@ -5,6 +5,7 @@ import { useCamera, DEBUG_MODE } from "../hooks/useCamera";
 import { useTeleprompterScroll } from "../hooks/useTeleprompterScroll";
 import { useWakeLock } from "../hooks/useWakeLock";
 import SettingsPanel from "./SettingsPanel";
+import { countWords, readTimeSec, formatClock } from "../lib/utils";
 import {
   IconBack, IconSettings, IconPlay, IconPause,
   IconDownload, IconReset, IconMirror,
@@ -190,7 +191,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
     settings.position === "bottom" ? "flex-end"   : "center";
 
   const promptFont = settings.fontStyle === "sans"
-    ? "var(--font-display)"
+    ? "var(--font-headline)"
     : "var(--font-serif)";
 
   const textShadow = settings.textStroke
@@ -201,6 +202,27 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
     settings.textBackground === "band"
       ? { background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", borderRadius: 12, padding: "16px 20px", margin: "0 -8px" }
       : {};
+
+  const readClock = formatClock(readTimeSec(countWords(script.body), settings.wpm));
+  const roundWhite: React.CSSProperties = {
+    width: 44, height: 44, borderRadius: "50%", background: "#FFFFFF", color: "var(--ink)",
+    border: "none", padding: 0, flexShrink: 0,
+  };
+  const chip: React.CSSProperties = {
+    width: 56, height: 56, borderRadius: 20, background: "var(--bg-2)", color: "var(--ink)",
+    border: "none", padding: 0, flexShrink: 0,
+  };
+  const recRing: React.CSSProperties = {
+    width: 76, height: 76, borderRadius: "50%", background: "#FFFFFF", border: "4px solid var(--ink)",
+    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 0,
+  };
+  const sliderRow: React.CSSProperties = { display: "flex", alignItems: "center", gap: 12 };
+  const sliderLabel: React.CSSProperties = { fontSize: 12, fontWeight: 600, width: 44, color: "var(--text-2)" };
+  const valueChip: React.CSSProperties = {
+    minWidth: 44, height: 28, borderRadius: 14, background: "var(--highlight)", color: "var(--ink)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontFamily: "var(--font-headline)", fontWeight: 800, fontSize: 14, padding: "0 8px",
+  };
 
   return (
     /* Outer shell — fills browser window, centres the 9:16 box */
@@ -227,7 +249,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
           <div style={{
             height: "100%",
             width: `${scrollProgress * 100}%`,
-            background: isRecording ? "#ff3b30" : "rgba(255,255,255,0.5)",
+            background: isRecording ? "var(--rec)" : "var(--highlight)",
             transition: "width 0.3s linear",
           }} />
         </div>
@@ -283,7 +305,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
             <p style={{ fontSize: 18, fontWeight: 700, textAlign: "center", marginBottom: 8 }}>
               Camera access needed
             </p>
-            <p style={{ fontSize: 14, color: "var(--text-2)", textAlign: "center" }}>
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.72)", textAlign: "center" }}>
               Allow camera and microphone access to use ReelPrompt.
             </p>
             {camera.cameraError && (
@@ -405,7 +427,7 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
             <p style={{ fontSize: 16, fontWeight: 600, textAlign: "center" }}>
               Optimising video…
             </p>
-            <p style={{ fontSize: 13, color: "var(--text-2)", textAlign: "center" }}>
+            <p style={{ fontSize: 13, color: "rgba(255,255,255,0.72)", textAlign: "center" }}>
               Fixing compatibility for Android gallery
             </p>
           </div>
@@ -422,18 +444,18 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
           }} onClick={(e) => e.stopPropagation()}>
             <div style={{
               width: 80, height: 80, borderRadius: "50%",
-              background: "rgba(48,209,88,0.15)", border: "2px solid var(--green)",
+              background: "var(--highlight)", color: "var(--ink)", border: "none",
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 36, marginBottom: 8,
             }}>✓</div>
             <h2 style={{ fontSize: 24, fontWeight: 800, textAlign: "center" }}>Recording complete</h2>
-            <p style={{ fontSize: 14, color: "var(--text-2)", textAlign: "center" }}>
-              Clean video ready — no text overlay, just you.
+            <p style={{ fontSize: 14, color: "rgba(255,255,255,0.72)", textAlign: "center" }}>
+              Clean video ready: no text overlay, just you.
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 320 }}>
               <button
                 className="btn btn-primary"
-                style={{ width: "100%", paddingTop: 16, paddingBottom: 16, fontSize: 16, gap: 10 }}
+                style={{ width: "100%", paddingTop: 16, paddingBottom: 16, fontSize: 16, gap: 10, background: "var(--highlight)", color: "var(--ink)" }}
                 onClick={() => camera.downloadRecording(script.title || "reelprompt")}
               >
                 <IconDownload /> Save Video…
@@ -467,171 +489,110 @@ export default function TeleprompterView({ script, settings, onSettingsChange, o
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Top bar */}
+            {/* Top bar: back · slate (title + time) · mirror · settings */}
             <div style={{
               position: "absolute", top: 0, left: 0, right: 0,
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "16px",
-              background: "linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)",
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "max(16px, env(safe-area-inset-top, 0px) + 8px) 12px 16px",
             }}>
-              <button
-                className="btn btn-icon"
-                title="Back to editor"
-                style={{ background: "rgba(0,0,0,0.4)", borderColor: "rgba(255,255,255,0.15)", color: "white" }}
-                onClick={onBack}
-              >
+              <button className="btn" aria-label="Back to editor" onClick={onBack} style={roundWhite}>
                 <IconBack />
               </button>
-
-              {/* Recording timer */}
-              {isRecording && (
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div className="rec-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff3b30" }} />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "white", letterSpacing: "0.05em" }}>
-                    {formatTime(camera.recordingTime)}
-                  </span>
+              <div style={{
+                flex: 1, minWidth: 0, height: 44, borderRadius: 22, background: "#FFFFFF", color: "var(--ink)",
+                display: "flex", alignItems: "center", overflow: "hidden",
+              }}>
+                <div aria-hidden="true" style={{ width: 30, alignSelf: "stretch", background: "var(--stripes)", flexShrink: 0 }} />
+                <div style={{ padding: "0 10px", fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1, minWidth: 0 }}>
+                  {script.title || "Untitled script"}
                 </div>
-              )}
-
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  className="btn btn-icon"
-                  style={{ background: "rgba(0,0,0,0.4)", borderColor: "rgba(255,255,255,0.15)", color: "white" }}
-                  title="Mirror video"
-                  onClick={() => handleSettingsChange({ ...settings, mirrorVideo: !settings.mirrorVideo })}
-                >
-                  <IconMirror />
-                </button>
-                <button
-                  className="btn btn-icon"
-                  title="Settings"
-                  style={{ background: "rgba(0,0,0,0.4)", borderColor: "rgba(255,255,255,0.15)", color: "white" }}
-                  onClick={() => setShowSettings(true)}
-                >
-                  <IconSettings />
-                </button>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 6, padding: "0 14px 0 4px", flexShrink: 0,
+                  fontFamily: "var(--font-headline)", fontWeight: 700, fontSize: 15, fontVariantNumeric: "tabular-nums",
+                  color: isRecording || isPaused ? "var(--danger)" : "var(--ink)",
+                }}>
+                  {isRecording && <span className="rec-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--rec)" }} />}
+                  {isRecording || isPaused ? formatTime(camera.recordingTime) : readClock}
+                </div>
               </div>
+              <button className="btn" aria-label="Mirror video" onClick={() => handleSettingsChange({ ...settings, mirrorVideo: !settings.mirrorVideo })} style={roundWhite}>
+                <IconMirror />
+              </button>
+              <button className="btn" aria-label="Settings" onClick={() => setShowSettings(true)} style={roundWhite}>
+                <IconSettings />
+              </button>
             </div>
 
-            {/* Bottom controls */}
+            {/* Bottom panel */}
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0,
-              padding: "32px 24px 48px",
-              background: "linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)",
-              display: "flex", flexDirection: "column", alignItems: "center", gap: 20,
+              padding: "0 12px max(16px, env(safe-area-inset-bottom, 0px) + 8px)",
             }}>
-              {/* Scroll play/pause (idle only) */}
-              {(isIdle || scroll.isFinished) && (
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  <button
-                    className="btn btn-icon"
-                    title="Restart from top"
-                    style={{ background: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.2)", color: "white", width: 44, height: 44 }}
-                    onClick={scroll.reset}
-                  >
-                    <IconReset />
-                  </button>
-                  <button
-                    style={{
-                      width: 56, height: 56, borderRadius: "50%",
-                      background: "rgba(255,255,255,0.15)", border: "2px solid rgba(255,255,255,0.4)",
-                      color: "white", cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                    onClick={scroll.toggle}
-                  >
-                    {scroll.isPlaying ? <IconPause size={22} /> : <IconPlay size={22} />}
-                  </button>
-                  <div style={{ width: 44 }} />
-                </div>
-              )}
-
-              {/* Record / stop / pause buttons */}
-              <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-                {isIdle && countdown === null && (
-                  <button
-                    onClick={handleStartWithCountdown}
-                    style={{
-                      width: 72, height: 72, borderRadius: "50%",
-                      background: "transparent", border: "3px solid white",
-                      cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >
-                    <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#ff3b30" }} />
-                  </button>
-                )}
-
-                {(isRecording || isPaused) && (
-                  <>
-                    <button
-                      onClick={scroll.toggle}
-                      style={{
-                        width: 48, height: 48, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.15)", border: "2px solid rgba(255,255,255,0.3)",
-                        color: "white", cursor: "pointer",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >
+              <div style={{
+                background: "#FFFFFF", color: "var(--ink)", borderRadius: 30, padding: "14px 16px",
+                display: "flex", flexDirection: "column", gap: 14,
+              }}>
+                {/* Main row */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  {(isIdle || scroll.isFinished) && countdown === null ? (
+                    <button className="btn" aria-label="Restart from top" onClick={scroll.reset} style={chip}>
+                      <IconReset />
+                    </button>
+                  ) : (isRecording || isPaused) ? (
+                    <button className="btn" aria-label={scroll.isPlaying ? "Pause text" : "Resume text"} onClick={scroll.toggle} style={chip}>
                       {scroll.isPlaying ? <IconPause size={18} /> : <IconPlay size={18} />}
                     </button>
+                  ) : <div style={{ width: 56 }} />}
 
-                    <button
-                      onClick={handleStopRecording}
-                      style={{
-                        width: 72, height: 72, borderRadius: "50%",
-                        background: "transparent", border: "3px solid white",
-                        cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >
-                      <div style={{ width: 28, height: 28, borderRadius: 6, background: "#ff3b30" }} />
+                  {isIdle && countdown === null && (
+                    <button aria-label="Start recording" onClick={handleStartWithCountdown} style={recRing}>
+                      <span style={{ width: 52, height: 52, borderRadius: "50%", background: "var(--rec)" }} />
                     </button>
+                  )}
+                  {(isRecording || isPaused) && (
+                    <button aria-label="Stop recording" onClick={handleStopRecording} style={recRing}>
+                      <span style={{ width: 28, height: 28, borderRadius: 8, background: "var(--rec)" }} />
+                    </button>
+                  )}
+                  {!isIdle && !isRecording && !isPaused && <div style={{ width: 76, height: 76 }} />}
+                  {isIdle && countdown !== null && <div style={{ width: 76, height: 76 }} />}
 
-                    <button
+                  {(isIdle || scroll.isFinished) && countdown === null && !(isRecording || isPaused) ? (
+                    <button className="btn" aria-label={scroll.isPlaying ? "Pause text" : "Play text"} onClick={scroll.toggle} style={chip}>
+                      {scroll.isPlaying ? <IconPause size={18} /> : <IconPlay size={18} />}
+                    </button>
+                  ) : (isRecording || isPaused) ? (
+                    <button className="btn" aria-label={isRecording ? "Pause recording" : "Resume recording"}
                       onClick={() => {
                         if (isRecording) { camera.pauseRecording(); scroll.pause(); }
                         else             { camera.resumeRecording(); scroll.start(); }
                       }}
-                      style={{
-                        width: 48, height: 48, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.15)", border: "2px solid rgba(255,255,255,0.3)",
-                        color: "white", cursor: "pointer", fontSize: 13, fontWeight: 700,
-                        fontFamily: "var(--font-mono)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                      }}
-                    >
-                      {isRecording ? "II" : "▶"}
+                      style={{ ...chip, fontSize: 13, fontWeight: 700 }}>
+                      {isRecording ? "Pause" : "Resume"}
                     </button>
-                  </>
-                )}
-              </div>
-
-              {/* Speed slider */}
-              <div style={{
-                display: "flex", flexDirection: "column", gap: 8,
-                background: "rgba(0,0,0,0.5)", borderRadius: 20,
-                padding: "10px 20px", backdropFilter: "blur(8px)",
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-mono)", width: 40 }}>SPEED</span>
-                  <input
-                    type="range" min={1} max={10} step={0.5} value={settings.speed}
-                    onChange={(e) => handleSettingsChange({ ...settings, speed: Number(e.target.value) })}
-                    style={{ width: 120, accentColor: "var(--accent)", height: 3 }}
-                  />
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-mono)", width: 24 }}>
-                    {settings.speed}
-                  </span>
+                  ) : <div style={{ width: 56 }} />}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-mono)", width: 40 }}>ZOOM</span>
-                  <input
-                    type="range" min={1.0} max={2.0} step={0.1} value={settings.zoom ?? 1}
-                    onChange={(e) => handleSettingsChange({ ...settings, zoom: Number(e.target.value) })}
-                    style={{ width: 120, accentColor: "var(--accent)", height: 3 }}
-                  />
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-mono)", width: 24 }}>
-                    {(settings.zoom ?? 1).toFixed(1)}x
-                  </span>
+
+                {/* Sliders */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label style={sliderRow}>
+                    <span style={sliderLabel}>Speed</span>
+                    <input
+                      type="range" min={1} max={10} step={0.5} value={settings.speed}
+                      onChange={(e) => handleSettingsChange({ ...settings, speed: Number(e.target.value) })}
+                      style={{ flex: 1, accentColor: "var(--ink)" }}
+                    />
+                    <span style={valueChip}>{settings.speed}</span>
+                  </label>
+                  <label style={sliderRow}>
+                    <span style={sliderLabel}>Zoom</span>
+                    <input
+                      type="range" min={1.0} max={2.0} step={0.1} value={settings.zoom ?? 1}
+                      onChange={(e) => handleSettingsChange({ ...settings, zoom: Number(e.target.value) })}
+                      style={{ flex: 1, accentColor: "var(--ink)" }}
+                    />
+                    <span style={{ ...valueChip, background: "var(--bg-2)" }}>{(settings.zoom ?? 1).toFixed(1)}×</span>
+                  </label>
                 </div>
               </div>
             </div>

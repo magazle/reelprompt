@@ -24,6 +24,11 @@ export function formatReadTime(secs: number): string {
   return `${Math.floor(secs / 60)}m ${secs % 60}s`;
 }
 
+/** Format seconds as a clock, e.g. "0:57" or "2:15". */
+export function formatClock(secs: number): string {
+  return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+}
+
 // ── Date helpers ─────────────────────────────────────────────────────────────
 
 /** Format a Unix timestamp as "May 11". */

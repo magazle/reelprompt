@@ -4,8 +4,8 @@
   "description": "Teleprompter + selfie recording for creators",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f9f9f7",
-  "theme_color": "#16a34a",
+  "background_color": "#FFFFFF",
+  "theme_color": "#FFFFFF",
   "orientation": "portrait",
   "icons": [
     {

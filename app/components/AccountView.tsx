@@ -21,10 +21,10 @@ export default function MoreView({ onBack, deletedScripts, onRestore, onPermanen
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
   const topPad = "max(56px, env(safe-area-inset-top, 0px) + 40px)";
-  const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 16, padding: "20px", marginBottom: 14 };
-  const cardTitle: React.CSSProperties = { fontSize: 13, fontWeight: 700, marginBottom: 4 };
+  const card: React.CSSProperties = { background: "var(--surface)", border: "2px solid var(--border)", borderRadius: 20, padding: "20px", marginBottom: 12 };
+  const cardTitle: React.CSSProperties = { fontSize: 13, fontWeight: 800, margin: "0 0 4px" };
   const cardText: React.CSSProperties = { fontSize: 12, color: "var(--text-3)", marginBottom: 14, lineHeight: 1.5, fontFamily: "var(--font-mono)" };
-  const linkBtn: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "12px 0", borderRadius: 12, background: "var(--bg-2)", color: "var(--text-2)", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, textDecoration: "none", border: "1px solid var(--border-2)" };
+  const linkBtn: React.CSSProperties = { display: "flex", alignItems: "center", justifyContent: "center", width: "100%", padding: "14px 0", borderRadius: 26, background: "var(--ink)", color: "#FFFFFF", fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 14, textDecoration: "none", border: "none" };
 
   return (
     <div style={shell}>
@@ -34,16 +34,15 @@ export default function MoreView({ onBack, deletedScripts, onRestore, onPermanen
           {/* Header */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
             <button onClick={onBack}
-              style={{ width: 38, height: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}
-              title="Back">
+              aria-label="Back" style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--surface)", border: "2px solid var(--ink)", color: "var(--ink)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             </button>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>ReelPrompt</div>
+            <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, lineHeight: 1 }}>More</h1>
           </div>
 
           {/* Deleted scripts */}
           <div style={card}>
-            <div style={cardTitle}>🗑 Deleted scripts</div>
+            <h2 style={{ ...cardTitle, fontSize: 18 }}>Deleted scripts</h2>
             {deletedScripts.length === 0 ? (
               <p style={{ ...cardText, marginBottom: 0 }}>Nothing here. Scripts you delete will appear here, so you can restore them.</p>
             ) : (
@@ -62,11 +61,11 @@ export default function MoreView({ onBack, deletedScripts, onRestore, onPermanen
                       </div>
                       <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                         <button onClick={() => onRestore(s.id)}
-                          style={{ fontSize: 11, fontFamily: "var(--font-mono)", background: "rgba(22,163,74,0.1)", color: "var(--accent)", border: "1px solid rgba(22,163,74,0.2)", borderRadius: 8, padding: "4px 10px", cursor: "pointer" }}>
+                          style={{ fontSize: 11, fontFamily: "var(--font-mono)", background: "var(--highlight)", color: "var(--ink)", border: "none", borderRadius: 16, padding: "8px 12px", fontWeight: 600, cursor: "pointer" }}>
                           Restore
                         </button>
                         <button onClick={() => { if (confirm("Delete this script forever?")) onPermanentDelete(s.id); }}
-                          style={{ fontSize: 11, fontFamily: "var(--font-mono)", background: "rgba(255,59,48,0.08)", color: "#ff3b30", border: "1px solid rgba(255,59,48,0.2)", borderRadius: 8, padding: "4px 10px", cursor: "pointer" }}>
+                          style={{ fontSize: 11, fontFamily: "var(--font-mono)", background: "#FDE8E6", color: "var(--danger)", border: "none", borderRadius: 16, padding: "8px 12px", fontWeight: 600, cursor: "pointer" }}>
                           Delete
                         </button>
                       </div>
@@ -79,16 +78,16 @@ export default function MoreView({ onBack, deletedScripts, onRestore, onPermanen
 
           {/* Help */}
           <div style={card}>
-            <div style={cardTitle}>📬 Help & feedback</div>
+            <h2 style={{ ...cardTitle, fontSize: 18 }}>Help & feedback</h2>
             <p style={cardText}>Report a bug, ask a question, or just say hi — we read everything.</p>
             <a href="/help" style={linkBtn}>Open the Help Desk →</a>
           </div>
 
           {/* Ko-fi donate */}
           <div style={card}>
-            <div style={cardTitle}>☕ Buy me a coffee</div>
+            <h2 style={{ ...cardTitle, fontSize: 18 }}>Buy me a coffee</h2>
             <p style={cardText}>ReelPrompt is free. If you love it, a coffee helps keep it going — no minimum, no pressure.</p>
-            <a href={KO_FI_DONATE_URL} target="_blank" rel="noopener noreferrer" style={linkBtn}>☕ Donate freely</a>
+            <a href={KO_FI_DONATE_URL} target="_blank" rel="noopener noreferrer" style={linkBtn}>Donate on Ko-fi</a>
           </div>
 
         </div>

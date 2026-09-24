@@ -502,7 +502,7 @@ export default function ScriptEditor({
         display: "flex", alignItems: "center", gap: 12,
         padding: "16px 20px", borderBottom: "1px solid var(--border)", flexShrink: 0,
       }}>
-        <button className="btn btn-icon" onClick={onBack}><IconBack /></button>
+        <button className="btn btn-icon" aria-label="Back" onClick={onBack}><IconBack /></button>
         <input
           className="input"
           placeholder="Script title…"
@@ -510,8 +510,7 @@ export default function ScriptEditor({
           onChange={(e) => handleTitleChange(e.target.value)}
           style={{
             flex: 1, background: "transparent", border: "none", padding: "4px 0",
-            fontSize: 17, fontWeight: 700, borderRadius: 0,
-            borderBottom: "1px solid var(--border)",
+            fontFamily: "var(--font-headline)", fontSize: 22, fontWeight: 800, letterSpacing: "-0.02em", borderRadius: 0,
           }}
         />
         <div style={{
@@ -627,7 +626,7 @@ export default function ScriptEditor({
           </div>
           {hasContent && (
             <div>
-              <span style={{ fontSize: 13, fontWeight: 700 }}>{readTime}</span>
+              <span style={{ fontFamily: "var(--font-headline)", fontSize: 20, fontWeight: 800, letterSpacing: "-0.02em" }}>{readTime}</span>
               <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", marginLeft: 4 }}>
                 {settings.wpm ? `@ ${settings.wpm} WPM` : "est."}
               </span>
@@ -657,17 +656,17 @@ export default function ScriptEditor({
             disabled={!hasContent}
             style={{
               flex: 1, opacity: hasContent ? 1 : 0.4,
-              background: "#ff3b30", borderRadius: 12, height: 48, fontSize: 15,
+              background: "var(--ink)", color: "#FFFFFF", borderRadius: 26, height: 52, fontSize: 15,
             }}
             onClick={handleStartRecording}
           >
-            ● Start Recording
+            <span aria-hidden="true" style={{ width: 12, height: 12, borderRadius: "50%", background: "var(--rec)" }} /> Start recording
           </button>
           <button
             className="btn btn-ghost"
             disabled={!hasContent}
             title="Teleprompter without camera — use it over your phone's camera app"
-            style={{ opacity: hasContent ? 1 : 0.4, borderRadius: 12, height: 48, fontSize: 14, padding: "0 16px", flexShrink: 0 }}
+            style={{ opacity: hasContent ? 1 : 0.4, borderRadius: 26, height: 52, fontSize: 14, padding: "0 18px", flexShrink: 0 }}
             onClick={handleStartTextOnly}
           >
             Text only

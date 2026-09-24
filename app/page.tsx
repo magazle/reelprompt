@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Script, TeleprompterSettings } from "./lib/types";
 import { getSettings, saveSettings } from "./lib/storage";
 import { useScripts } from "./hooks/useScripts";
-import { countWords } from "./lib/utils";
+import { countWords, readTimeSec, formatClock } from "./lib/utils";
 import ScriptCard from "./components/ScriptCard";
 import ScriptEditor from "./components/ScriptEditor";
 import TeleprompterView from "./components/TeleprompterView";
@@ -54,44 +54,41 @@ function InstallBanner() {
   if (isStandalone || dismissed) return null;
 
   if (canInstall) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, marginBottom: 20, flexShrink: 0 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", background: "var(--surface)", border: "2px solid var(--border)", borderRadius: 20, marginBottom: 20, flexShrink: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 20 }}>📲</span>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Add to Home Screen</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>Use offline, fullscreen</div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        <button onClick={triggerInstall} className="btn btn-primary" style={{ padding: "8px 16px", fontSize: 13, borderRadius: 10 }}>Install</button>
-        <button onClick={() => setDismissed(true)} className="btn btn-icon" style={{ width: 36, height: 36, borderRadius: 10, fontSize: 16 }} title="Dismiss">✕</button>
+        <button onClick={triggerInstall} className="btn btn-primary" style={{ padding: "10px 18px", fontSize: 13 }}>Install</button>
+        <button onClick={() => setDismissed(true)} className="btn btn-icon" style={{ width: 40, height: 40, fontSize: 16 }} aria-label="Dismiss">✕</button>
       </div>
     </div>
   );
 
   if (isIOS) return (
-    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, marginBottom: 20, flexShrink: 0 }}>
+    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: "12px 16px", background: "var(--surface)", border: "2px solid var(--border)", borderRadius: 20, marginBottom: 20, flexShrink: 0 }}>
       <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-        <span style={{ fontSize: 20 }}>📲</span>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>Add to Home Screen</div>
           <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5 }}>Tap <strong style={{ color: "var(--text-2)" }}>Share</strong> → <strong style={{ color: "var(--text-2)" }}>Add to Home Screen</strong></div>
         </div>
       </div>
-      <button onClick={() => setDismissed(true)} className="btn btn-icon" style={{ width: 36, height: 36, borderRadius: 10, fontSize: 16, flexShrink: 0 }} title="Dismiss">✕</button>
+      <button onClick={() => setDismissed(true)} className="btn btn-icon" style={{ width: 40, height: 40, fontSize: 16, flexShrink: 0 }} aria-label="Dismiss">✕</button>
     </div>
   );
 
   if (canShowTip) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "11px 14px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, marginBottom: 16 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "11px 14px", background: "var(--surface)", border: "2px solid var(--border)", borderRadius: 20, marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <span style={{ fontSize: 18 }}>📲</span>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Add to Home Screen</div>
           <div style={{ fontSize: 11, color: "var(--text-3)" }}>Browser menu → <strong style={{ color: "var(--text-2)" }}>Install app</strong> or <strong style={{ color: "var(--text-2)" }}>Add to Home Screen</strong></div>
         </div>
       </div>
-      <button onClick={() => setDismissed(true)} className="btn btn-icon" style={{ width: 36, height: 36, borderRadius: 10, fontSize: 15, flexShrink: 0 }} title="Dismiss">✕</button>
+      <button onClick={() => setDismissed(true)} className="btn btn-icon" style={{ width: 40, height: 40, fontSize: 15, flexShrink: 0 }} aria-label="Dismiss">✕</button>
     </div>
   );
 
@@ -99,39 +96,63 @@ function InstallBanner() {
 }
 
 
-// ── Search bar ────────────────────────────────────────────────────────────
+// ── Logo ──────────────────────────────────────────────────────────────────
 
-function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function Logo() {
   return (
-    <div style={{ position: "relative", marginBottom: 16 }}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-        style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-3)", pointerEvents: "none" }}>
-        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-      <input type="search" placeholder="Search scripts…" value={value} onChange={(e) => onChange(e.target.value)}
-        style={{ width: "100%", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: 14, padding: "10px 14px 10px 38px", outline: "none", transition: "border-color 0.15s" }}
-        onFocus={(e) => (e.currentTarget.style.borderColor = "var(--accent)")}
-        onBlur={(e) => (e.currentTarget.style.borderColor = "var(--border)")}
-      />
-      {value && <button onClick={() => onChange("")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-3)", fontSize: 16, lineHeight: 1, padding: 2 }}>×</button>}
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div aria-hidden="true" style={{ width: 28, height: 20, borderRadius: 5, border: "2px solid var(--ink)", background: "var(--stripes)" }} />
+      <div style={{ fontFamily: "var(--font-headline)", fontWeight: 800, fontSize: 20, letterSpacing: "-0.02em" }}>ReelPrompt</div>
     </div>
   );
 }
 
-// ── Sort toggle ───────────────────────────────────────────────────────────
+const MenuIcon = ({ d }: { d: string }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
+);
+const ICON_HELP  = "M12 17h.01M9.1 9a3 3 0 1 1 4.4 2.6c-.9.5-1.5 1.1-1.5 2.1M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z";
+const ICON_TRASH = "M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3";
+const ICON_MAIL  = "M4 6h16v12H4zM4 7l8 6 8-6";
+
+// ── Search bar ────────────────────────────────────────────────────────────
+
+function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div style={{ position: "relative" }}>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"
+        style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", color: "var(--text-3)", pointerEvents: "none" }}>
+        <circle cx="11" cy="11" r="7" /><line x1="20" y1="20" x2="16" y2="16" />
+      </svg>
+      <input type="search" placeholder="Search scripts" aria-label="Search scripts" value={value} onChange={(e) => onChange(e.target.value)}
+        style={{ width: "100%", height: 48, background: "var(--bg-2)", border: "2px solid transparent", borderRadius: 24, color: "var(--text)", fontFamily: "var(--font-display)", fontSize: 15, padding: "0 40px 0 42px", outline: "none", transition: "border-color 0.15s" }}
+        onFocus={(e) => (e.currentTarget.style.borderColor = "var(--ink)")}
+        onBlur={(e) => (e.currentTarget.style.borderColor = "transparent")}
+      />
+      {value && <button onClick={() => onChange("")} aria-label="Clear search" style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, borderRadius: "50%", background: "none", border: "none", cursor: "pointer", color: "var(--text-2)", fontSize: 18, lineHeight: 1 }}>×</button>}
+    </div>
+  );
+}
+
+// ── Sort chips ────────────────────────────────────────────────────────────
 
 const SORT_LABELS: Record<SortOrder, string> = { recent: "Recent", oldest: "Oldest", az: "A–Z" };
 const SORT_CYCLE: SortOrder[] = ["recent", "oldest", "az"];
 
-function SortButton({ sort, onToggle }: { sort: SortOrder; onToggle: () => void }) {
+function SortChips({ sort, onChange }: { sort: SortOrder; onChange: (s: SortOrder) => void }) {
   return (
-    <button onClick={onToggle} title="Change sort order"
-      style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-3)", background: "none", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer", padding: "5px 10px", transition: "color 0.15s, border-color 0.15s" }}
-      onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text)"; e.currentTarget.style.borderColor = "var(--border-2)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-3)"; e.currentTarget.style.borderColor = "var(--border)"; }}
-    >
-      ↕ {SORT_LABELS[sort]}
-    </button>
+    <div role="group" aria-label="Sort scripts" style={{ display: "flex", gap: 8 }}>
+      {SORT_CYCLE.map((key) => {
+        const active = key === sort;
+        return (
+          <button key={key} onClick={() => onChange(key)} aria-pressed={active}
+            style={{ height: 36, padding: "0 14px", borderRadius: 18, cursor: "pointer", fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 600,
+              background: active ? "var(--ink)" : "var(--surface)", color: active ? "#FFFFFF" : "var(--ink)",
+              border: active ? "2px solid var(--ink)" : "2px solid var(--border)" }}>
+            {SORT_LABELS[key]}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -139,10 +160,10 @@ function SortButton({ sort, onToggle }: { sort: SortOrder; onToggle: () => void 
 // ── How To Use modal ─────────────────────────────────────────────────────
 
 const HOW_TO_STEPS = [
-  { emoji: "✍️", title: "Write your script", body: "Type or paste your script in the editor. Use the toolbar for bold, italic, colour highlights and bullet lists." },
-  { emoji: "⚡", title: "Calibrate your speed", body: "Tap Calibrate in the editor footer, press Start and read aloud at your natural pace, then press Done. ReelPrompt sets the scroll speed automatically." },
-  { emoji: "🎬", title: "Record", body: "Tap ▶ on any script card to open the teleprompter. A 3-2-1 countdown gives you time to compose yourself — the script scrolls over your camera preview. The text is never captured in the video." },
-  { emoji: "💾", title: "Save and share", body: "When you stop recording you get a clean video — no overlay, just you. Download it and upload directly to Instagram, TikTok, YouTube or wherever you publish." },
+  { title: "Write your script", body: "Type or paste your script in the editor. Use the toolbar for bold, italic, colour highlights and bullet lists." },
+  { title: "Calibrate your speed", body: "Tap Calibrate in the editor footer, press Start and read aloud at your natural pace, then press Done. ReelPrompt sets the scroll speed automatically." },
+  { title: "Record", body: "Tap ▶ on any script card to open the teleprompter. A 3-2-1 countdown gives you time to compose yourself — the script scrolls over your camera preview. The text is never captured in the video." },
+  { title: "Save and share", body: "When you stop recording you get a clean video — no overlay, just you. Download it and upload directly to Instagram, TikTok, YouTube or wherever you publish." },
 ];
 
 function HowToModal({ onClose }: { onClose: () => void }) {
@@ -156,7 +177,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
         {/* header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 20px 14px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
           <h2 style={{ fontSize: 17, fontWeight: 800, color: "var(--text)", margin: 0 }}>How it works</h2>
-          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-2)", color: "var(--text-2)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          <button onClick={onClose} aria-label="Close" style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid var(--border)", background: "var(--surface)", color: "var(--text-2)", cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
         </div>
         {/* scrollable body */}
         <div style={{ overflowY: "auto", WebkitOverflowScrolling: "touch", paddingBottom: "env(safe-area-inset-bottom, 16px)" }}>
@@ -176,8 +197,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontSize: 18 }}>{step.emoji}</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{step.title}</span>
+                                    <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{step.title}</span>
                 </div>
                 <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, margin: 0 }}>{step.body}</p>
               </div>
@@ -187,7 +207,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
           {/* Install tip */}
           <div style={{ margin: "16px 20px 0", padding: "14px 16px", background: "var(--bg-2)", borderRadius: 12, border: "1px solid var(--border)" }}>
             <p style={{ fontSize: 12, color: "var(--text-3)", margin: 0, lineHeight: 1.5, fontFamily: "var(--font-mono)" }}>
-              💡 Tip: install ReelPrompt on your home screen for fullscreen recording without the browser bar.
+              Tip: install ReelPrompt on your home screen for fullscreen recording without the browser bar.
             </p>
           </div>
 
@@ -208,7 +228,7 @@ function HowToModal({ onClose }: { onClose: () => void }) {
 
 function Footer() {
   return (
-    <div style={{ padding: "16px 24px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0 }}>
+    <div style={{ padding: "16px 24px", paddingBottom: "max(16px, env(safe-area-inset-bottom, 0px) + 12px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexShrink: 0, maxWidth: 600, width: "100%", margin: "0 auto" }}>
       <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>© 2026 Leo Magazzu</span>
       <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
         <a href="/help" style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "var(--font-mono)", textDecoration: "none", transition: "color 0.15s" }}
@@ -267,6 +287,8 @@ export default function Home() {
 
   const hasScripts = scripts.length > 0;
   const totalWords = scripts.reduce((acc, s) => acc + countWords(s.body), 0);
+  const totalClock = formatClock(readTimeSec(totalWords, settings.wpm));
+  const mostRecentId = scripts.reduce<Script | null>((a, s) => (!a || s.updatedAt > a.updatedAt ? s : a), null)?.id;
 
   const afterFilter = query.trim()
     ? scripts.filter((s) => { const q = query.toLowerCase(); return s.title.toLowerCase().includes(q) || s.body.replace(/<[^>]*>/g, " ").toLowerCase().includes(q); })
@@ -282,31 +304,37 @@ export default function Home() {
   const shell: React.CSSProperties = { height: "100dvh", background: "var(--bg)", display: "flex", flexDirection: "column", overflow: "hidden" };
   const scroller: React.CSSProperties = { flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch" };
 
-  const hamburgerBtn: React.CSSProperties = { height: 38, width: 38, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border-2)", color: "var(--text-2)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "var(--font-display)" };
+  const hamburgerBtn: React.CSSProperties = { height: 44, width: 44, borderRadius: "50%", background: "var(--surface)", border: "2px solid var(--ink)", color: "var(--ink)", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontFamily: "var(--font-display)" };
+  const menuItem: React.CSSProperties = { width: "100%", minHeight: 44, padding: "10px 14px", borderRadius: 12, border: "none", background: "none", color: "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 };
+  const newScriptBar = (
+    <div style={{ padding: "12px 20px 4px", flexShrink: 0, maxWidth: 600, width: "100%", margin: "0 auto" }}>
+      <button className="btn" onClick={handleCreate}
+        style={{ width: "100%", height: 58, borderRadius: 29, background: "var(--ink)", color: "#FFFFFF", fontSize: 16 }}>
+        <IconPlus /> New script
+      </button>
+    </div>
+  );
 
   const headerRight = (
     <div style={{ position: "relative", flexShrink: 0 }}>
-      <button onClick={() => setShowMenu((v) => !v)} style={hamburgerBtn} title="Menu">
-        {showMenu ? "✕" : "≡"}
+      <button onClick={() => setShowMenu((v) => !v)} style={hamburgerBtn} aria-label="Menu" aria-expanded={showMenu}>
+        {showMenu ? "✕" : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="14" y2="17" /></svg>}
       </button>
       {showMenu && (
         <>
           {/* backdrop */}
           <div style={{ position: "fixed", inset: 0, zIndex: 98 }} onClick={() => setShowMenu(false)} />
           {/* dropdown */}
-          <div style={{ position: "absolute", top: 46, right: 0, zIndex: 99, background: "var(--surface)", border: "1px solid var(--border-2)", borderRadius: 14, padding: 6, minWidth: 180, boxShadow: "0 8px 24px rgba(0,0,0,0.10)", animation: "scale-in 0.15s ease forwards", transformOrigin: "top right" }}>
-            <button onClick={() => { setShowMenu(false); setTimeout(() => setShowHowTo(true), 50); }}
-              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 16 }}>💡</span> How it works
+          <div style={{ position: "absolute", top: 46, right: 0, zIndex: 99, background: "var(--surface)", border: "2px solid var(--ink)", borderRadius: 18, padding: 6, minWidth: 210, boxShadow: "0 8px 24px rgba(0,0,0,0.12)", animation: "scale-in 0.15s ease forwards", transformOrigin: "top right" }}>
+            <button onClick={() => { setShowMenu(false); setTimeout(() => setShowHowTo(true), 50); }} style={menuItem}>
+              <MenuIcon d={ICON_HELP} /> How it works
             </button>
             <div style={{ height: 1, background: "var(--border)", margin: "4px 6px" }} />
-            <button onClick={() => { setShowMenu(false); setTimeout(() => setView("more"), 50); }}
-              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 16 }}>🗑</span> Deleted scripts{deletedScripts.length > 0 ? ` (${deletedScripts.length})` : ""}
+            <button onClick={() => { setShowMenu(false); setTimeout(() => setView("more"), 50); }} style={menuItem}>
+              <MenuIcon d={ICON_TRASH} /> Deleted scripts{deletedScripts.length > 0 ? ` (${deletedScripts.length})` : ""}
             </button>
-            <button onClick={() => { setShowMenu(false); setTimeout(() => setView("more"), 50); }}
-              style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "none", background: "none", color: "var(--text)", fontSize: 14, fontWeight: 600, fontFamily: "var(--font-display)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 16 }}>📬</span> Help & support
+            <button onClick={() => { setShowMenu(false); setTimeout(() => setView("more"), 50); }} style={menuItem}>
+              <MenuIcon d={ICON_MAIL} /> Help & support
             </button>
           </div>
         </>
@@ -316,26 +344,25 @@ export default function Home() {
 
   // ── Empty state ───────────────────────────────────────────────────────────
 
+  const page: React.CSSProperties = { padding: "0 20px 32px", paddingTop: topPad, maxWidth: 600, margin: "0 auto" };
+
   if (!hasScripts) {
     return (
       <div style={shell}>
         <div style={scroller}>
-          <div style={{ padding: "0 24px 40px", paddingTop: topPad }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase" }}>ReelPrompt</div>
+          <div style={page}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
+              <Logo />
               {headerRight}
             </div>
             <InstallBanner />
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: 14, paddingTop: 32 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>✍️</div>
-              <div>
-                <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Write your first script</h2>
-                <p style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.5 }}>Write or paste your script, calibrate your speed, then record.</p>
-              </div>
-              <button className="btn btn-primary" onClick={handleCreate}><IconPlus /> Create your first script</button>
-            </div>
+            <h1 style={{ fontSize: 46, fontWeight: 800, lineHeight: 0.95, margin: "8px 0 14px" }}>Every take starts with a script.</h1>
+            <p style={{ fontSize: 15, color: "var(--text-2)", lineHeight: 1.5, margin: 0, maxWidth: 420 }}>
+              Write or paste it, calibrate your reading speed, then record with the text scrolling over your camera.
+            </p>
           </div>
         </div>
+        {newScriptBar}
         <Footer />
         {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
       </div>
@@ -347,43 +374,36 @@ export default function Home() {
   return (
     <div style={shell}>
       <div style={scroller}>
-        <div style={{ padding: "0 24px 40px", paddingTop: topPad }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-            <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>ReelPrompt</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
-                <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: 28, lineHeight: 1.1, letterSpacing: "-0.02em" }}>Your Scripts</h1>
-                <span style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>{scripts.length} · {totalWords.toLocaleString()} words</span>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
-              {headerRight}
-              <button className="btn btn-primary" style={{ height: 38, padding: "0 14px", fontSize: 13, borderRadius: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={handleCreate}>
-                <IconPlus /> New
-              </button>
-            </div>
+        <div style={page}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+            <Logo />
+            {headerRight}
           </div>
           <InstallBanner />
-          <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 4 }}>
-            <div style={{ flex: 1 }}><SearchBar value={query} onChange={setQuery} /></div>
-            <div style={{ marginBottom: 16 }}><SortButton sort={sort} onToggle={cycleSort} /></div>
+          <h1 style={{ fontSize: 46, fontWeight: 800, lineHeight: 0.95, margin: "0 0 8px" }}>Ready<br />for a take?</h1>
+          <p style={{ fontSize: 14, color: "var(--text-2)", margin: "0 0 20px" }}>
+            {scripts.length} {scripts.length === 1 ? "script" : "scripts"}, {totalClock} of reading
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+            {scripts.length > 3 && <SearchBar value={query} onChange={setQuery} />}
+            <SortChips sort={sort} onChange={setSort} />
           </div>
           {filtered.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {filtered.map((s) => (
-                <ScriptCard key={s.id} script={s} onEdit={handleEdit} onDuplicate={duplicate} onDelete={remove} onRecord={handleRecord} />
+                <ScriptCard key={s.id} script={s} highlight={s.id === mostRecentId} onEdit={handleEdit} onDuplicate={duplicate} onDelete={remove} onRecord={handleRecord} />
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: "center", padding: "48px 0 24px" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
-              <p style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>No scripts match "{query}"</p>
-              <p style={{ fontSize: 13, color: "var(--text-3)", marginBottom: 20 }}>Try a different search term or create a new script.</p>
+            <div style={{ padding: "40px 0 24px" }}>
+              <p style={{ fontFamily: "var(--font-headline)", fontSize: 24, fontWeight: 800, margin: "0 0 6px" }}>No script matches &ldquo;{query}&rdquo;</p>
+              <p style={{ fontSize: 14, color: "var(--text-2)", margin: "0 0 20px" }}>Search looks in titles and script text.</p>
               <button className="btn btn-ghost" onClick={() => setQuery("")}>Clear search</button>
             </div>
           )}
         </div>
       </div>
+      {newScriptBar}
       <Footer />
       {showHowTo && <HowToModal onClose={() => setShowHowTo(false)} />}
     </div>

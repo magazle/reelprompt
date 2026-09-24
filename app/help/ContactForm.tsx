@@ -28,11 +28,11 @@ export default function ContactForm() {
 
   const input: React.CSSProperties = {
     width: "100%",
-    background: "#f0f0ec",
-    border: "1px solid #e2e2db",
+    background: "#F4F4F1",
+    border: "1px solid #E4E4DF",
     borderRadius: 10,
-    color: "#0f1f14",
-    fontFamily: "Syne, sans-serif",
+    color: "#0E0E0E",
+    fontFamily: "Onest, sans-serif",
     fontSize: 14,
     padding: "10px 12px",
     outline: "none",
@@ -41,12 +41,12 @@ export default function ContactForm() {
 
   if (state === "sent") {
     return (
-      <div style={{ padding: "24px", background: "#f0f0ec", borderRadius: 14, textAlign: "center" }}>
+      <div style={{ padding: "24px", background: "#F4F4F1", borderRadius: 14, textAlign: "center" }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>✅</div>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, color: "#0f1f14" }}>Message sent!</div>
-        <p style={{ fontSize: 13, color: "#4a6654", margin: 0 }}>We'll get back to you as soon as possible.</p>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6, color: "#0E0E0E" }}>Message sent!</div>
+        <p style={{ fontSize: 13, color: "#4A4A46", margin: 0 }}>We'll get back to you as soon as possible.</p>
         <button onClick={() => setState("idle")}
-          style={{ marginTop: 14, fontSize: 12, color: "#86a892", background: "none", border: "none", cursor: "pointer", fontFamily: "DM Mono, monospace" }}>
+          style={{ marginTop: 14, fontSize: 12, color: "#6B6B66", background: "none", border: "none", cursor: "pointer", fontFamily: "Onest, sans-serif" }}>
           Send another
         </button>
       </div>
@@ -70,7 +70,7 @@ export default function ContactForm() {
         style={{ ...input, resize: "none", lineHeight: 1.5 }}
       />
       {state === "error" && (
-        <p style={{ fontSize: 12, color: "#ff3b30", margin: 0, fontFamily: "DM Mono, monospace" }}>Something went wrong — try again.</p>
+        <p style={{ fontSize: 12, color: "#ff3b30", margin: 0, fontFamily: "Onest, sans-serif" }}>Something went wrong — try again.</p>
       )}
       <button
         onClick={handleSend}
@@ -80,9 +80,9 @@ export default function ContactForm() {
           padding: "13px 0",
           borderRadius: 12,
           border: "none",
-          background: "#16a34a",
+          background: "#0E0E0E",
           color: "white",
-          fontFamily: "Syne, sans-serif",
+          fontFamily: "Onest, sans-serif",
           fontWeight: 700,
           fontSize: 14,
           cursor: state === "sending" || !message.trim() ? "default" : "pointer",

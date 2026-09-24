@@ -7,17 +7,17 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   const h2 = { fontSize: 16, fontWeight: 700, marginBottom: 8, marginTop: 32 } as React.CSSProperties;
-  const p = { fontSize: 14, lineHeight: 1.7, color: "#4a6654", marginBottom: 12 } as React.CSSProperties;
+  const p = { fontSize: 14, lineHeight: 1.7, color: "#4A4A46", marginBottom: 12 } as React.CSSProperties;
   const li = { marginBottom: 6 } as React.CSSProperties;
 
   return (
     <html lang="en" style={{ overflowY: "scroll" }}>
-      <body style={{ margin: 0, fontFamily: "Syne, sans-serif", background: "#f9f9f7", color: "#0f1f14" }}>
+      <body style={{ margin: 0, fontFamily: "Onest, sans-serif", background: "#FFFFFF", color: "#0E0E0E" }}>
         <ScrollUnlock />
         <div className="page-scrollable" style={{ maxWidth: 640, margin: "0 auto", padding: "48px 24px 80px" }}>
 
           <div style={{ marginBottom: 32 }}>
-            <div style={{ fontSize: 11, color: "#16a34a", fontFamily: "DM Mono, monospace", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: "#0E0E0E", fontFamily: "Onest, sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12 }}>
               ReelPrompt
             </div>
             <h1 style={{ fontSize: 28, fontWeight: 800, letterSpacing: "-0.02em", marginBottom: 8 }}>
@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           <h2 style={h2}>Who we are</h2>
           <p style={p}>
             ReelPrompt is an independent product developed by Leo Magazzu. For any privacy-related requests, contact us at{" "}
-            <a href="mailto:privacy@leomagazzu.it" style={{ color: "#16a34a" }}>privacy@leomagazzu.it</a>.
+            <a href="mailto:privacy@leomagazzu.it" style={{ color: "#0E0E0E" }}>privacy@leomagazzu.it</a>.
           </p>
 
           <h2 style={h2}>What data we collect</h2>
@@ -72,7 +72,7 @@ export default function PrivacyPage() {
           </ul>
           <p style={p}>
             To exercise any of these rights, contact us at{" "}
-            <a href="mailto:privacy@leomagazzu.it" style={{ color: "#16a34a" }}>privacy@leomagazzu.it</a>.
+            <a href="mailto:privacy@leomagazzu.it" style={{ color: "#0E0E0E" }}>privacy@leomagazzu.it</a>.
             We will respond within 30 days.
           </p>
 
@@ -86,8 +86,8 @@ export default function PrivacyPage() {
             We may update this policy as the product evolves. The date at the top of this page always reflects the latest version.
           </p>
 
-          <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid #e2e2db" }}>
-            <a href="/" style={{ fontSize: 13, color: "#16a34a", textDecoration: "none", fontFamily: "DM Mono, monospace" }}>
+          <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid #E4E4DF" }}>
+            <a href="/" style={{ fontSize: 13, color: "#0E0E0E", textDecoration: "none", fontFamily: "Onest, sans-serif" }}>
               ← Back to ReelPrompt
             </a>
           </div>

@@ -31,7 +31,7 @@ export const DEFAULT_SETTINGS: TeleprompterSettings = {
   mirrorText: false,
   mirrorVideo: true,
   textBackground: "band",
-  fontStyle: "serif",
+  fontStyle: "sans",
   textStroke: false,
   wpm: null,
   zoom: 1.0,

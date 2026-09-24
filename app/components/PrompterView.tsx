@@ -30,13 +30,13 @@ export default function PrompterView({ script, settings, onSettingsChange, onBac
 
   const set = (patch: Partial<TeleprompterSettings>) => onSettingsChange({ ...settings, ...patch });
 
-  const promptFont = settings.fontStyle === "sans" ? "var(--font-display)" : "var(--font-serif)";
+  const promptFont = settings.fontStyle === "sans" ? "var(--font-headline)" : "var(--font-serif)";
 
   const ctrlBtn: React.CSSProperties = {
-    minWidth: 34, height: 34, borderRadius: 9, border: "1px solid rgba(255,255,255,0.18)",
+    minWidth: 36, height: 36, borderRadius: 18, border: "1px solid rgba(255,255,255,0.18)",
     background: "rgba(255,255,255,0.08)", color: "white", cursor: "pointer",
     display: "flex", alignItems: "center", justifyContent: "center",
-    fontFamily: "var(--font-mono)", fontSize: 13, padding: "0 8px", flexShrink: 0,
+    fontFamily: "var(--font-display)", fontSize: 13, fontWeight: 600, padding: "0 8px", flexShrink: 0,
   };
   const label: React.CSSProperties = { fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: "var(--font-mono)", minWidth: 26, textAlign: "center" };
 
@@ -65,7 +65,7 @@ export default function PrompterView({ script, settings, onSettingsChange, onBac
       {/* Compact controls — fit in a small floating window */}
       <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", paddingBottom: "max(8px, env(safe-area-inset-bottom, 0px))", borderTop: "1px solid rgba(255,255,255,0.1)", overflowX: "auto", flexShrink: 0 }}>
         <button style={ctrlBtn} onClick={() => { scroll.stop(); onBack(); }} title="Back"><IconBack /></button>
-        <button style={{ ...ctrlBtn, background: "var(--accent)", border: "none" }} onClick={scroll.toggle} title={scroll.isPlaying ? "Pause" : "Play"}>
+        <button style={{ ...ctrlBtn, background: "var(--highlight)", color: "var(--ink)", border: "none" }} onClick={scroll.toggle} title={scroll.isPlaying ? "Pause" : "Play"}>
           {scroll.isPlaying ? <IconPause size={14} /> : <IconPlay size={14} />}
         </button>
         <button style={ctrlBtn} onClick={scroll.reset} title="Restart"><IconReset /></button>
@@ -80,7 +80,7 @@ export default function PrompterView({ script, settings, onSettingsChange, onBac
 
         <button style={ctrlBtn} onClick={() => set({ fontSize: clamp(settings.fontSize - 4, 16, 96) })} title="Smaller text">A−</button>
         <button style={ctrlBtn} onClick={() => set({ fontSize: clamp(settings.fontSize + 4, 16, 96) })} title="Bigger text">A+</button>
-        <button style={{ ...ctrlBtn, background: settings.mirrorText ? "rgba(22,163,74,0.35)" : ctrlBtn.background }} onClick={() => set({ mirrorText: !settings.mirrorText })} title="Mirror text">⇋</button>
+        <button style={{ ...ctrlBtn, background: settings.mirrorText ? "var(--highlight)" : ctrlBtn.background, color: settings.mirrorText ? "var(--ink)" : "white" }} onClick={() => set({ mirrorText: !settings.mirrorText })} title="Mirror text">⇋</button>
       </div>
     </div>
   );
